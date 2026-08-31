@@ -427,7 +427,7 @@ Plan
 PlanFeature
 Subscription
 SubscriptionEvent
-Payment
+BillingPayment
 ```
 
 Exemplo:
@@ -476,7 +476,7 @@ Tenant
  -> Subscription
  -> Plan
  -> Invoice/Charge
- -> Payment
+ -> BillingPayment
 ```
 
 ## Pagamentos do negócio
@@ -1059,7 +1059,7 @@ Não permitir agendamentos conflitantes conforme as regras definidas.
 
 Criar:
 
-- planos;
+- integração com os planos definidos na F5;
 - assinatura;
 - trial;
 - renovação;
@@ -1705,4 +1705,3 @@ Crie/revise somente a documentação e as decisões arquiteturais previstas para
 
 Ao finalizar, execute uma revisão de consistência do MASTER_PLAN.md e informe qualquer conflito ou decisão que precise ser tomada antes da F1.
 ```
-

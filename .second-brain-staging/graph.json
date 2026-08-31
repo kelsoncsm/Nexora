@@ -1,0 +1,30 @@
+{
+  "collapse-filter": true,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    { "query": "tag:#projeto", "color": { "a": 1, "rgb": 3108589 } },
+    { "query": "tag:#decisao", "color": { "a": 1, "rgb": 10631423 } },
+    { "query": "tag:#padrao", "color": { "a": 1, "rgb": 1096065 } },
+    { "query": "tag:#preferencia", "color": { "a": 1, "rgb": 16106776 } },
+    { "query": "tag:#stack", "color": { "a": 1, "rgb": 15690810 } },
+    { "query": "tag:#log", "color": { "a": 1, "rgb": 7049856 } },
+    { "query": "tag:#indice", "color": { "a": 1, "rgb": 3359061 } }
+  ],
+  "collapse-display": true,
+  "showArrow": false,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": true,
+  "centerStrength": 0.518713248970312,
+  "repelStrength": 10,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 0.3628873693012114,
+  "close": true
+}
