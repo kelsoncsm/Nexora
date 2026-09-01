@@ -1,0 +1,20 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Configurações</h1>
+      <p>Central de ajustes da sua empresa.</p>
+    </div>
+  </div>
+
+  <div class="nx-hub-grid">
+    @for (c of visibleCards(); track c.route) {
+      <a class="nx-card nx-hub-card" [routerLink]="c.route">
+        <span class="nx-hub-icon"
+          ><svg class="nx-ico"><use [attr.href]="'#' + c.icon" /></svg
+        ></span>
+        <strong>{{ c.title }}</strong>
+        <span class="nx-form-hint">{{ c.description }}</span>
+      </a>
+    }
+  </div>
+</main>

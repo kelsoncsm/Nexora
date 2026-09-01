@@ -1,0 +1,15 @@
+main {
+  display: block;
+}
+.nx-price-form {
+  display: flex;
+  gap: var(--nx-space-3);
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-4);
+}
+.nx-price-form .nx-form-group {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 160px;
+}

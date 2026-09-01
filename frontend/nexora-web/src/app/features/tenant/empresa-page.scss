@@ -1,0 +1,21 @@
+main {
+  display: block;
+}
+.nx-defs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px var(--nx-space-4);
+  font-size: var(--nx-fs-sm);
+}
+.nx-defs dt {
+  color: var(--nx-text-muted);
+}
+.nx-defs dd {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-all;
+}
+.nx-mono {
+  font-family: var(--nx-font-mono, ui-monospace, monospace);
+  font-weight: 500 !important;
+}

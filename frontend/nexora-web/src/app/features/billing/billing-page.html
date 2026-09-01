@@ -1,0 +1,80 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Minha assinatura</h1>
+      <p>Gere um checkout e acompanhe suas cobranças.</p>
+    </div>
+  </div>
+
+  <div class="nx-grid nx-grid--2">
+    <form class="nx-card" (ngSubmit)="checkout()">
+      <h2 class="nx-section-title">Novo checkout</h2>
+      <div class="nx-form-group">
+        <label class="nx-form-label">Método de pagamento</label>
+        <select class="nx-form-control" [(ngModel)]="method" name="method">
+          <option value="Pix">Pix</option>
+          <option value="Boleto">Boleto</option>
+          <option value="CreditCard">Cartão de crédito</option>
+        </select>
+      </div>
+      <div class="nx-form-group">
+        <label class="nx-form-label">E-mail do pagador</label>
+        <input
+          class="nx-form-control"
+          [(ngModel)]="email"
+          name="email"
+          type="email"
+          required
+          placeholder="pagador@empresa.com.br"
+        />
+      </div>
+      <div class="nx-form-actions">
+        <span></span><button type="submit" class="nx-btn">Criar checkout</button>
+      </div>
+
+      @if (result(); as r) {
+        <div class="nx-alert nx-alert--info" style="margin-top: var(--nx-space-4)">
+          <div>
+            <strong>{{ r.amount }} {{ r.currency }}</strong> · {{ r.status }}
+            @if (r.checkoutUrl) {
+              · <a [href]="r.checkoutUrl" class="nx-btn-link">Abrir pagamento</a>
+            }
+          </div>
+        </div>
+      }
+    </form>
+
+    <div class="nx-card">
+      <h2 class="nx-section-title">Cobranças</h2>
+      <div class="nx-table-wrap">
+        <table class="nx-table" style="min-width: 0">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (x of invoices(); track x.id) {
+              <tr>
+                <td data-label="Status">
+                  <span class="nx-badge" [class]="badge(x.status)">{{ x.status }}</span>
+                </td>
+                <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="2" style="padding: 0">
+                  <div class="nx-empty">
+                    <svg class="nx-ico"><use href="#i-dollar" /></svg><b>Nenhuma cobrança</b
+                    ><span>As cobranças aparecerão aqui após o primeiro ciclo.</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>

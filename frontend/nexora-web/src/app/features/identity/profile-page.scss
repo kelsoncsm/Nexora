@@ -1,0 +1,17 @@
+main {
+  display: block;
+}
+.nx-profile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+}
+.nx-profile-head strong {
+  display: block;
+  font-size: var(--nx-fs-md);
+}
+.nx-perm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-2);
+}

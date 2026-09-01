@@ -1,0 +1,93 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Empresa</h1>
+      <p>Dados cadastrais da empresa ativa.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+  }
+  @if (saved()) {
+    <div class="nx-alert nx-alert--success">Dados atualizados.</div>
+  }
+
+  @if (profile(); as p) {
+    <div class="nx-grid nx-grid--2">
+      <form class="nx-card" (ngSubmit)="save()">
+        <h2 class="nx-section-title">Identificação</h2>
+
+        <div class="nx-form-group">
+          <label class="nx-form-label" for="name">Nome da empresa</label>
+          <input
+            id="name"
+            class="nx-form-control"
+            [(ngModel)]="name"
+            name="name"
+            maxlength="200"
+            required
+          />
+        </div>
+
+        <div class="nx-form-group">
+          <label class="nx-form-label" for="tz">Fuso horário (IANA)</label>
+          <input
+            id="tz"
+            class="nx-form-control"
+            [(ngModel)]="timeZoneId"
+            name="timeZoneId"
+            list="nx-zones"
+            placeholder="America/Sao_Paulo"
+            required
+          />
+          <datalist id="nx-zones">
+            @for (z of zones; track z) {
+              <option [value]="z"></option>
+            }
+          </datalist>
+          <p class="nx-form-hint">Aplicado a agenda, relatórios e comunicações.</p>
+        </div>
+
+        <div class="nx-form-actions">
+          <span></span>
+          <button
+            class="nx-btn"
+            type="submit"
+            [disabled]="busy() || !name().trim() || !timeZoneId().trim()"
+          >
+            {{ busy() ? 'Salvando…' : 'Salvar alterações' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="nx-card">
+        <h2 class="nx-section-title">Informações do sistema</h2>
+        <dl class="nx-defs">
+          <dt>Endereço público</dt>
+          <dd>/t/{{ p.slug }}</dd>
+          <dt>Slug</dt>
+          <dd>{{ p.slug }}</dd>
+          <dt>Status</dt>
+          <dd>
+            <span
+              class="nx-badge"
+              [class]="p.isActive ? 'nx-badge--success' : 'nx-badge--danger'"
+              >{{ p.isActive ? 'Ativa' : 'Inativa' }}</span
+            >
+          </dd>
+          <dt>Criada em</dt>
+          <dd>{{ p.createdAt | date: 'dd/MM/yyyy' }}</dd>
+          <dt>Identificador</dt>
+          <dd class="nx-mono">{{ p.id }}</dd>
+        </dl>
+        <p class="nx-form-hint" style="margin-top: var(--nx-space-4)">
+          O slug e a titularidade não são editáveis aqui. Plano e assinatura ficam em
+          <b>Plano e Assinatura</b>.
+        </p>
+      </div>
+    </div>
+  } @else if (!error()) {
+    <div class="nx-card"><p class="nx-form-hint">Carregando…</p></div>
+  }
+</main>

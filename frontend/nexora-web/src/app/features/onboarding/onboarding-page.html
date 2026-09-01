@@ -1,0 +1,115 @@
+<main class="onboarding-shell">
+  <header>
+    <span class="nx-eyebrow">Configuração inicial</span>
+    <h1>Vamos preparar sua empresa</h1>
+    <p>Etapa {{ draft()?.currentStep ?? 1 }} de 5 · seu progresso é salvo automaticamente.</p>
+  </header>
+  <ol class="steps">
+    @for (step of [1, 2, 3, 4, 5]; track step) {
+      <li [class.active]="step === (draft()?.currentStep ?? 1)">{{ step }}</li>
+    }
+  </ol>
+  @if (loading()) {
+    <section class="card"><p>Carregando seu onboarding…</p></section>
+  } @else if (draft(); as d) {
+    <section class="card">
+      @switch (d.currentStep) {
+        @case (1) {
+          <h2>Sua empresa</h2>
+          <label>Nome da empresa<input [(ngModel)]="d.companyName" maxlength="200" /></label
+          ><label
+            >Slug para acesso<input
+              [(ngModel)]="d.companySlug"
+              maxlength="100"
+              placeholder="minha-empresa"
+          /></label>
+        }
+        @case (2) {
+          <h2>Segmento</h2>
+          <p>Isso personaliza a configuração inicial, sem limitar seus recursos.</p>
+          <div class="choices">
+            @for (segment of segments(); track segment.id) {
+              <button
+                type="button"
+                class="choice"
+                [class.selected]="d.segmentId === segment.id"
+                (click)="d.segmentId = segment.id"
+              >
+                <b>{{ segment.name }}</b
+                ><small>{{ segment.code }}</small>
+              </button>
+            }
+          </div>
+        }
+        @case (3) {
+          <h2>Plano e cobrança futura</h2>
+          <p>O teste gratuito dura 14 dias. Nenhuma cobrança é feita agora.</p>
+          <div class="choices plans">
+            @for (plan of plans(); track plan.planId + '-' + plan.billingInterval) {
+              <button
+                type="button"
+                class="choice"
+                [class.selected]="
+                  d.planId === plan.planId && d.billingInterval === plan.billingInterval
+                "
+                (click)="choosePlan(d, plan)"
+              >
+                <b>{{ plan.name }}</b
+                ><span
+                  >{{ plan.amount | currency: plan.currency }} /
+                  {{ plan.billingInterval === 'Monthly' ? 'mês' : 'ano' }}</span
+                ><small>
+                  @for (limit of plan.limits; track limit.featureCode) {
+                    {{ limit.featureCode
+                    }}{{ limit.limit === null ? '' : ' (' + limit.limit + ')' }}
+                  }
+                </small>
+              </button>
+            }
+          </div>
+        }
+        @case (4) {
+          <h2>Fuso horário</h2>
+          <label
+            >Identificador IANA<input [(ngModel)]="d.timeZoneId" placeholder="America/Sao_Paulo"
+          /></label>
+          <p>Usaremos este fuso em agenda, relatórios e comunicações.</p>
+        }
+        @case (5) {
+          <h2>Confirmar</h2>
+          <dl>
+            <dt>Empresa</dt>
+            <dd>{{ d.companyName }}</dd>
+            <dt>Endereço</dt>
+            <dd>/t/{{ d.companySlug }}</dd>
+            <dt>Segmento</dt>
+            <dd>{{ segmentName(d.segmentId) }}</dd>
+            <dt>Plano</dt>
+            <dd>{{ planName(d.planId, d.billingInterval) }}</dd>
+            <dt>Fuso</dt>
+            <dd>{{ d.timeZoneId }}</dd>
+          </dl>
+          <p>Ao confirmar, criaremos sua empresa e iniciaremos o trial de 14 dias.</p>
+        }
+      }
+      @if (error()) {
+        <p class="nx-error" role="alert">{{ error() }}</p>
+      }
+      <footer>
+        @if (d.currentStep > 1) {
+          <button type="button" class="secondary" [disabled]="busy()" (click)="move(-1)">
+            Voltar
+          </button>
+        }
+        <span></span
+        ><button
+          type="button"
+          [disabled]="busy() || !valid(d)"
+          (click)="d.currentStep === 5 ? complete() : move(1)"
+        >
+          {{ busy() ? 'Salvando…' : d.currentStep === 5 ? 'Criar minha empresa' : 'Continuar' }}
+        </button>
+      </footer>
+    </section>
+  }
+</main>

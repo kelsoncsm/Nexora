@@ -1,0 +1,140 @@
+<div class="nx-dash">
+  <p class="nx-dash-greet">
+    {{ greeting() }}, {{ firstName() }}! 👋<span>Aqui está o resumo da sua empresa hoje.</span>
+  </p>
+
+  @if (auth.tenantId()) {
+    @if (loading() || state() === 'idle') {
+      <div class="nx-grid nx-grid--kpi">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="nx-kpi">
+            <div>
+              <div class="nx-skeleton" style="height: 12px; width: 70%"></div>
+              <div class="nx-skeleton" style="height: 26px; width: 50%; margin-top: 8px"></div>
+              <div class="nx-skeleton" style="height: 11px; width: 40%; margin-top: 8px"></div>
+            </div>
+            <span class="nx-kpi-ico"></span>
+          </div>
+        }
+      </div>
+    } @else if (report(); as r) {
+      <section class="nx-grid nx-grid--kpi">
+        <article class="nx-kpi nx-kpi--purple">
+          <div>
+            <div class="nx-kpi-head">Clientes</div>
+            <div class="nx-kpi-value">{{ r.customers ?? 0 }}</div>
+            <div class="nx-kpi-trend"><span>base cadastrada</span></div>
+          </div>
+          <span class="nx-kpi-ico"
+            ><svg class="nx-ico"><use href="#i-users" /></svg
+          ></span>
+        </article>
+        <article class="nx-kpi nx-kpi--blue">
+          <div>
+            <div class="nx-kpi-head">Agendamentos</div>
+            <div class="nx-kpi-value">{{ r.appointments?.total ?? 0 }}</div>
+            <div class="nx-kpi-trend"><span>no período</span></div>
+          </div>
+          <span class="nx-kpi-ico"
+            ><svg class="nx-ico"><use href="#i-calendar" /></svg
+          ></span>
+        </article>
+        <article class="nx-kpi nx-kpi--green">
+          <div>
+            <div class="nx-kpi-head">Concluídos</div>
+            <div class="nx-kpi-value">{{ r.appointments?.completed ?? 0 }}</div>
+            <div class="nx-kpi-trend">{{ completionRate() }} <span>de conclusão</span></div>
+          </div>
+          <span class="nx-kpi-ico"
+            ><svg class="nx-ico"><use href="#i-chart" /></svg
+          ></span>
+        </article>
+        <article class="nx-kpi nx-kpi--orange">
+          <div>
+            <div class="nx-kpi-head">Faltas (no-show)</div>
+            <div class="nx-kpi-value">{{ r.appointments?.noShow ?? 0 }}</div>
+            <div class="nx-kpi-trend"><span>últimos 30 dias</span></div>
+          </div>
+          <span class="nx-kpi-ico"
+            ><svg class="nx-ico"><use href="#i-bell" /></svg
+          ></span>
+        </article>
+      </section>
+    } @else {
+      <div class="nx-card">
+        <div class="nx-empty">
+          <svg class="nx-ico"><use href="#i-chart" /></svg><b>Indicadores indisponíveis</b
+          ><span>Não foi possível carregar o resumo agora.</span>
+        </div>
+      </div>
+    }
+
+    <section class="nx-card">
+      <div class="nx-card-title">
+        <svg class="nx-ico"><use href="#i-plus" /></svg>Atalhos rápidos
+      </div>
+      <nav class="nx-quick">
+        <a routerLink="/clientes"
+          ><span class="nx-quick-ico"
+            ><svg class="nx-ico"><use href="#i-users" /></svg></span
+          >Novo cliente</a
+        >
+        <a routerLink="/agenda"
+          ><span class="nx-quick-ico"
+            ><svg class="nx-ico"><use href="#i-calendar" /></svg></span
+          >Agenda</a
+        >
+        <a routerLink="/servicos"
+          ><span class="nx-quick-ico"
+            ><svg class="nx-ico"><use href="#i-scissors" /></svg></span
+          >Serviços</a
+        >
+        <a routerLink="/relatorios"
+          ><span class="nx-quick-ico"
+            ><svg class="nx-ico"><use href="#i-chart" /></svg></span
+          >Relatórios</a
+        >
+        <a routerLink="/assinatura"
+          ><span class="nx-quick-ico"
+            ><svg class="nx-ico"><use href="#i-card" /></svg></span
+          >Assinatura</a
+        >
+      </nav>
+    </section>
+  } @else {
+    <section class="nx-card nx-dash-tenant">
+      <div class="nx-card-title">
+        <svg class="nx-ico"><use href="#i-building" /></svg>Abrir uma empresa
+      </div>
+      <p
+        style="
+          color: var(--nx-text-muted);
+          font-size: var(--nx-fs-sm);
+          margin-bottom: var(--nx-space-2);
+        "
+      >
+        Informe o slug do tenant para abrir uma sessão operacional ou configure uma nova empresa.
+      </p>
+      <div class="nx-form-group">
+        <label class="nx-form-label" for="slug">Slug do tenant</label>
+        <input
+          id="slug"
+          class="nx-form-control"
+          #slug
+          placeholder="minha-empresa"
+          (keyup.enter)="select(slug.value)"
+        />
+      </div>
+      @if (error()) {
+        <p class="nx-form-error" role="alert">{{ error() }}</p>
+      }
+      <div class="nx-dash-actions">
+        <button type="button" class="nx-btn" (click)="select(slug.value)">Abrir tenant</button>
+        <button type="button" class="nx-btn nx-btn--secondary" (click)="onboarding()">
+          Criar empresa
+        </button>
+        <button type="button" class="nx-btn nx-btn--ghost" (click)="logout()">Sair</button>
+      </div>
+    </section>
+  }
+</div>

@@ -1,0 +1,59 @@
+<section class="nx-auth" aria-labelledby="auth-title">
+  <div class="nx-auth-brand">
+    <span class="nx-brand-mark">N</span>
+    <span><strong>Nexora</strong><small>Plataforma MultiNicho</small></span>
+  </div>
+
+  <h1 id="auth-title">{{ mode() === 'login' ? 'Bem-vindo de volta!' : 'Criar conta' }}</h1>
+  <p class="nx-auth-sub">
+    {{
+      mode() === 'login' ? 'Faça login para acessar sua conta' : 'Preencha os dados para começar'
+    }}
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="nx-form-group">
+      <label class="nx-form-label" for="email">E-mail</label>
+      <div class="nx-input-icon">
+        <svg class="nx-ico"><use href="#i-mail" /></svg>
+        <input
+          class="nx-form-control"
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="voce@empresa.com.br"
+        />
+      </div>
+    </div>
+    <div class="nx-form-group">
+      <label class="nx-form-label" for="password">Senha</label>
+      <div class="nx-input-icon">
+        <svg class="nx-ico"><use href="#i-lock" /></svg>
+        <input
+          class="nx-form-control"
+          id="password"
+          type="password"
+          formControlName="password"
+          [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+          placeholder="••••••••••••"
+        />
+      </div>
+      @if (mode() === 'register') {
+        <p class="nx-form-hint">Mínimo de 12 caracteres.</p>
+      }
+    </div>
+    @if (error()) {
+      <p class="nx-form-error" role="alert">Não foi possível autenticar. Verifique os dados.</p>
+    }
+    <button type="submit" class="nx-btn nx-btn--block" [disabled]="form.invalid || busy()">
+      {{ busy() ? 'Aguarde…' : mode() === 'login' ? 'Entrar' : 'Continuar' }}
+    </button>
+  </form>
+
+  <div class="nx-auth-foot">
+    <a [routerLink]="mode() === 'login' ? '/cadastro' : '/login'">{{
+      mode() === 'login' ? 'Criar uma conta' : 'Já tenho uma conta'
+    }}</a>
+  </div>
+</section>

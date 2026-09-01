@@ -1,0 +1,156 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <p class="nx-eyebrow">Nexora Platform Admin</p>
+      <h1>{{ title() }}</h1>
+    </div>
+    <div class="nx-ph-actions">
+      <a class="nx-btn nx-btn--secondary" routerLink="/admin/assinaturas">Assinaturas</a>
+      <a class="nx-btn nx-btn--secondary" routerLink="/admin/billing">Preços e invoices</a>
+      <a class="nx-btn nx-btn--secondary" routerLink="/admin/relatorios">Relatórios</a>
+    </div>
+  </div>
+
+  <div class="nx-tabs">
+    @for (item of menu; track item.key) {
+      <button class="nx-tab" [class.active]="section() === item.key" (click)="open(item.key)">
+        {{ item.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="nx-grid nx-grid--kpi">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="nx-kpi">
+          <div>
+            <div class="nx-skeleton" style="height: 12px; width: 60%"></div>
+            <div class="nx-skeleton" style="height: 26px; width: 45%; margin-top: 8px"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+  } @else if (section() === 'dashboard' && dashboard()) {
+    <section class="nx-grid nx-grid--kpi">
+      <article class="nx-kpi nx-kpi--purple">
+        <div>
+          <div class="nx-kpi-head">Tenants</div>
+          <div class="nx-kpi-value">{{ dashboard()!.totalTenants }}</div>
+        </div>
+        <span class="nx-kpi-ico"
+          ><svg class="nx-ico"><use href="#i-building" /></svg
+        ></span>
+      </article>
+      <article class="nx-kpi nx-kpi--green">
+        <div>
+          <div class="nx-kpi-head">Ativos</div>
+          <div class="nx-kpi-value">{{ dashboard()!.activeTenants }}</div>
+        </div>
+        <span class="nx-kpi-ico"
+          ><svg class="nx-ico"><use href="#i-check" /></svg
+        ></span>
+      </article>
+      <article class="nx-kpi nx-kpi--blue">
+        <div>
+          <div class="nx-kpi-head">Usuários</div>
+          <div class="nx-kpi-value">{{ dashboard()!.totalUsers }}</div>
+        </div>
+        <span class="nx-kpi-ico"
+          ><svg class="nx-ico"><use href="#i-users" /></svg
+        ></span>
+      </article>
+      <article class="nx-kpi nx-kpi--orange">
+        <div>
+          <div class="nx-kpi-head">Segmentos</div>
+          <div class="nx-kpi-value">{{ dashboard()!.activeSegments }}</div>
+        </div>
+        <span class="nx-kpi-ico"
+          ><svg class="nx-ico"><use href="#i-gear" /></svg
+        ></span>
+      </article>
+    </section>
+  } @else {
+    <div class="nx-card">
+      @if (section() === 'features' || section() === 'plans' || section() === 'segments') {
+        <form class="nx-admin-create" (submit)="create($event)">
+          <div class="nx-form-group">
+            <label class="nx-form-label">Código</label
+            ><input class="nx-form-control" name="code" placeholder="CODIGO" #code />
+          </div>
+          <div class="nx-form-group">
+            <label class="nx-form-label">Nome</label
+            ><input class="nx-form-control" name="name" placeholder="Nome legível" #name />
+          </div>
+          <button
+            type="submit"
+            class="nx-btn"
+            (click)="draftCode = code.value; draftName = name.value"
+          >
+            <svg class="nx-ico"><use href="#i-plus" /></svg>Adicionar
+          </button>
+        </form>
+      }
+      <div class="nx-table-wrap">
+        <table class="nx-table">
+          <thead>
+            <tr>
+              <th>Identificador</th>
+              <th>Nome / ação</th>
+              <th>Status / data</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <td data-label="Identificador">
+                  <b>{{ identifier(row) }}</b>
+                </td>
+                <td data-label="Nome / ação">{{ description(row) }}</td>
+                <td data-label="Status / data">
+                  {{ detail(row) }}
+                  @if (isPlan(row)) {
+                    <span class="nx-table-actions" style="margin-left: var(--nx-space-2)">
+                      <button
+                        type="button"
+                        class="nx-btn nx-btn--ghost nx-btn--sm"
+                        (click)="togglePlan(row, 'public')"
+                      >
+                        {{ row.isPublic ? 'Ocultar' : 'Publicar' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="nx-btn nx-btn--ghost nx-btn--sm"
+                        (click)="togglePlan(row, 'trial')"
+                      >
+                        {{ row.isTrialEligible ? 'Remover trial' : 'Permitir trial' }}
+                      </button>
+                    </span>
+                  }
+                  @if (section() === 'tenants' && asTenant(row); as t) {
+                    <span class="nx-table-actions" style="margin-left: var(--nx-space-2)">
+                      <button
+                        type="button"
+                        class="nx-btn nx-btn--ghost nx-btn--sm"
+                        (click)="toggleTenant(t)"
+                      >
+                        {{ t.isActive ? 'Desativar' : 'Reativar' }}
+                      </button>
+                    </span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" style="padding: 0">
+                  <div class="nx-empty"><b>Nada nesta seção</b></div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</main>

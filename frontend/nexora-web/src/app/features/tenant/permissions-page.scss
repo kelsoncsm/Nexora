@@ -1,0 +1,31 @@
+main {
+  display: block;
+}
+.nx-perm-head {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-4);
+}
+.nx-perm-group {
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  margin-bottom: var(--nx-space-3);
+}
+.nx-perm-group legend {
+  padding: 0 6px;
+  font-size: var(--nx-fs-sm);
+}
+.nx-perm-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px var(--nx-space-4);
+  margin-top: 8px;
+}
+.nx-perm-items code,
+.nx-perm-head code {
+  font-size: var(--nx-fs-xs);
+  color: var(--nx-text-muted);
+}
