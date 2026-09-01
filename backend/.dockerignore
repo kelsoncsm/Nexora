@@ -1,0 +1,12 @@
+**/bin
+**/obj
+**/TestResults
+.vs
+.git
+.github
+.env
+.env.*
+**/*.user
+**/*.suo
+**/coverage
+**/*.trx

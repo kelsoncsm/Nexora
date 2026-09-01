@@ -15,12 +15,14 @@ O tenant efetivo é resolvido no backend a partir da identidade autenticada, da 
 Uma requisição tenant-scoped deverá:
 
 1. autenticar o usuário;
-2. identificar o tenant solicitado pelo mecanismo público que vier a ser aprovado;
+2. quando houver rota pública tenant-scoped, resolver o tenant pelo `TenantSlug` normalizado presente em `/t/{tenantSlug}/...`;
 3. confirmar no backend que o usuário pertence ao tenant e está ativo;
 4. construir o contexto imutável da requisição;
 5. aplicar autorização e filtros usando esse contexto.
 
-O mecanismo público de seleção (claim, header, rota ou subdomínio) será fechado antes da F3. Independentemente dele, o servidor sempre valida a associação; nenhum valor isolado fornecido pelo cliente concede acesso.
+O `TenantSlug` é um identificador público de resolução, não uma autoridade de segurança. Fluxos não autenticados podem usá-lo para localizar tenants ativos. Após autenticação, o tenant efetivo vem exclusivamente da claim `tenant_id` emitida pelo servidor depois da validação da associação ativa. Slug ou `TenantId` enviados pelo frontend nunca autorizam acesso. Tenants inexistentes, inativos ou indisponíveis não estabelecem um `ITenantContext` válido.
+
+A resolução pública permanece desacoplada do isolamento do domínio para permitir futuramente subdomínios ou domínios customizados. Essas estratégias não fazem parte da F3.
 
 ## Leitura e escrita
 

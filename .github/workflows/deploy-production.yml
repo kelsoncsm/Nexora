@@ -1,0 +1,66 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY to release the selected commit
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: inputs.confirmation == 'DEPLOY'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Azure login using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push immutable API image
+        env:
+          ACR_NAME: ${{ vars.ACR_NAME }}
+        run: |
+          az acr login --name "$ACR_NAME"
+          docker build --tag "$ACR_NAME.azurecr.io/nexora-api:${GITHUB_SHA}" backend
+          docker push "$ACR_NAME.azurecr.io/nexora-api:${GITHUB_SHA}"
+      - name: Deploy infrastructure and immutable workload revision
+        env:
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+        run: |
+          az deployment sub create --location "${{ vars.AZURE_LOCATION }}" --template-file infra/main.bicep --parameters location="${{ vars.AZURE_LOCATION }}" resourceGroupName="${{ vars.AZURE_RESOURCE_GROUP }}" resourceNamePrefix="${{ vars.AZURE_RESOURCE_PREFIX }}" imageTag="${GITHUB_SHA}" postgresAdministratorLogin="${{ vars.POSTGRES_ADMIN_LOGIN }}" postgresAdministratorPassword="$POSTGRES_ADMIN_PASSWORD" frontendRepositoryUrl="${{ vars.FRONTEND_REPOSITORY_URL }}" alertEmail="${{ vars.ALERT_EMAIL }}" apiHost="${{ vars.API_HOST }}" frontendOrigin="${{ vars.FRONTEND_ORIGIN }}" emailFromAddress="${{ vars.EMAIL_FROM_ADDRESS }}" deployWorkloads=true
+      - name: Run controlled database migration
+        run: |
+          EXECUTION=$(az containerapp job start --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_RESOURCE_PREFIX }}-migrate" --query name --output tsv)
+          for attempt in {1..60}; do
+            STATUS=$(az containerapp job execution show --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_RESOURCE_PREFIX }}-migrate" --job-execution-name "$EXECUTION" --query properties.status --output tsv)
+            if [ "$STATUS" = "Succeeded" ]; then exit 0; fi
+            if [ "$STATUS" = "Failed" ]; then exit 1; fi
+            sleep 10
+          done
+          exit 1
+      - name: Activate and verify API revision
+        run: |
+          az containerapp update --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_RESOURCE_PREFIX }}-api" --image "${{ vars.ACR_NAME }}.azurecr.io/nexora-api:${GITHUB_SHA}"
+          API_FQDN=$(az containerapp show --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_RESOURCE_PREFIX }}-api" --query properties.configuration.ingress.fqdn --output tsv)
+          curl --fail --retry 12 --retry-delay 10 "https://${API_FQDN}/health/ready"
+      - name: Publish static frontend
+        env:
+          API_BASE_URL: https://${{ vars.API_HOST }}/api/v1
+        run: |
+          npm ci --prefix frontend/nexora-web
+          npm run build --prefix frontend/nexora-web
+          printf "window.__NEXORA_CONFIG__ = { apiBaseUrl: '%s' };\n" "$API_BASE_URL" > frontend/nexora-web/dist/nexora-web/browser/config.js
+          DEPLOYMENT_TOKEN=$(az staticwebapp secrets list --name "${{ vars.AZURE_RESOURCE_PREFIX }}-web" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --query properties.apiKey --output tsv)
+          npx --yes @azure/static-web-apps-cli@2.0.10 deploy frontend/nexora-web/dist/nexora-web/browser --deployment-token "$DEPLOYMENT_TOKEN" --env production

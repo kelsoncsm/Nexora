@@ -161,33 +161,34 @@ nexora/
 │   ├── api-guidelines.md
 │   └── decisions/
 │
-├── src/
-│   ├── Nexora.Api/
-│   ├── Nexora.Application/
-│   ├── Nexora.Domain/
-│   ├── Nexora.Infrastructure/
-│   └── Modules/
-│       ├── Identity/
-│       ├── Tenancy/
-│       ├── Administration/
-│       ├── Plans/
-│       ├── Features/
-│       ├── Billing/
-│       ├── Customers/
-│       ├── Professionals/
-│       ├── Services/
-│       ├── Scheduling/
-│       ├── Payments/
-│       ├── Notifications/
-│       └── Reports/
+├── backend/
+│   ├── src/
+│   │   ├── Nexora.Api/
+│   │   ├── Nexora.Application/
+│   │   ├── Nexora.Domain/
+│   │   ├── Nexora.Infrastructure/
+│   │   └── Modules/
+│   │       ├── Identity/
+│   │       ├── Tenancy/
+│   │       ├── Administration/
+│   │       ├── Plans/
+│   │       ├── Features/
+│   │       ├── Billing/
+│   │       ├── Customers/
+│   │       ├── Professionals/
+│   │       ├── Services/
+│   │       ├── Scheduling/
+│   │       ├── Payments/
+│   │       ├── Notifications/
+│   │       └── Reports/
+│   ├── tests/
+│   │   ├── Nexora.UnitTests/
+│   │   └── Nexora.IntegrationTests/
+│   ├── Dockerfile
+│   └── Nexora.slnx
 │
 ├── frontend/
 │   └── nexora-web/
-│
-├── tests/
-│   ├── Unit/
-│   ├── Integration/
-│   └── E2E/
 │
 ├── database/
 ├── docker/

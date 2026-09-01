@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 10.0.x }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24.20.0, cache: npm, cache-dependency-path: frontend/nexora-web/package-lock.json }
+      - name: Restore backend
+        run: dotnet restore backend/Nexora.slnx
+      - name: Build and test backend Release
+        run: dotnet test backend/Nexora.slnx --configuration Release --no-restore --maxcpucount:1 --nodeReuse:false -p:UseSharedCompilation=false
+      - name: Check vulnerable .NET dependencies
+        run: dotnet list backend/Nexora.slnx package --vulnerable --include-transitive
+      - name: Install frontend dependencies
+        working-directory: frontend/nexora-web
+        run: npm ci
+      - name: Test frontend
+        working-directory: frontend/nexora-web
+        run: npm test -- --watch=false
+      - name: Audit frontend dependencies
+        working-directory: frontend/nexora-web
+        run: npm audit --audit-level=high
+      - name: Build frontend production
+        working-directory: frontend/nexora-web
+        run: npm run build
+      - name: Validate migration bundle can be produced
+        working-directory: backend
+        env:
+          ConnectionStrings__NexoraDatabase: Host=localhost;Database=nexora;Username=nexora;Password=build-only
+        run: |
+          dotnet tool restore
+          dotnet ef migrations bundle --project src/Nexora.Infrastructure/Nexora.Infrastructure.csproj --startup-project src/Nexora.Infrastructure/Nexora.Infrastructure.csproj --context NexoraDbContext --configuration Release --no-build --output ${{ runner.temp }}/nexora-migrate
+      - name: Validate Bicep
+        run: az bicep build --file infra/main.bicep
+      - name: Build production API image
+        run: docker build --tag nexora-api:${{ github.sha }} backend
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

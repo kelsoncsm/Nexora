@@ -57,7 +57,7 @@ Segmentos descrevem o contexto comercial, mas não devem criar condicionais espa
 - Erros consistentes e sem stack trace em produção.
 - Gateways externos ficam atrás de portas, como `IPaymentGateway`.
 - Webhooks exigem autenticidade, idempotência e tolerância a duplicidade/reprocessamento.
-- Datas persistidas representam instantes de forma não ambígua; exibição e regras locais usam o timezone configurado do tenant. O mapeamento técnico exato será definido antes da F8.
+- Datas persistidas representam instantes UTC de forma não ambígua; exibição e regras locais usam o `TimeZoneId` IANA configurado do tenant, conforme ADR-0012.
 
 ## Observabilidade e operação
 
@@ -71,11 +71,29 @@ Logging estruturado deve carregar, quando disponível, `CorrelationId`, `Request
 - Billing SaaS e pagamentos operacionais são contextos distintos;
 - contratos públicos e limites de módulo só mudam mediante decisão controlada.
 
-## Decisões em aberto para fases futuras
+## Stack e organização física aprovadas na F1
 
-- versão LTS exata do .NET e versões compatíveis da stack, na F1;
-- organização física dos projetos/módulos, na F1;
-- biblioteca de UI, na F1;
-- provedor inicial de pagamento, antes da F10;
-- estratégia técnica detalhada de timezone, antes da F8;
-- infraestrutura de produção, CI/CD, backup e restore, até a F14.
+- .NET 10 LTS, ASP.NET Core 10, EF Core 10 e Npgsql 10;
+- Angular 22, TypeScript na faixa oficial do Angular 22 e Node.js 24 LTS;
+- PrimeNG 22 como biblioteca de UI, acessada preferencialmente por imports de componente e encapsulada pela camada `shared/ui`;
+- projetos backend sob `backend/src`, testes sob `backend/tests` e SPA sob `frontend/nexora-web`;
+- PostgreSQL e os três processos executáveis locais orquestrados por Docker Compose.
+
+A direção de dependências física é:
+
+```text
+Nexora.Api -> Nexora.Application + Nexora.Infrastructure
+Nexora.Infrastructure -> Nexora.Application + Nexora.Domain
+Nexora.Application -> Nexora.Domain
+Nexora.Domain -> nenhuma camada do Nexora
+```
+
+## Decisões consolidadas no roadmap F0–F15
+
+- Mercado Pago é o primeiro adaptador do Billing SaaS, atrás de `IPaymentGateway`;
+- timezone tenant-scoped usa identificadores IANA e persistência UTC;
+- a topologia Azure, CI/CD, backup e restore estão definidos na F14 e em seus runbooks, sem provisionamento automático neste checkpoint.
+
+## Onboarding self-service (F13)
+
+Contas globais autenticadas podem manter um rascunho user-scoped e concluir a criação do tenant em uma transação única. A conclusão cria o administrador inicial e uma assinatura `Trialing` de 14 dias, sem pagamento. Segmentos e planos são catálogos globais; somente planos ativos, públicos, elegíveis para trial e com preço ativo são oferecidos. Consulte `ADR-0016-f13-self-service-onboarding.md`.

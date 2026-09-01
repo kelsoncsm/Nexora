@@ -1087,40 +1087,158 @@ Não ocultar falhas.
 
 ---
 
-## 51. Regra de parada
+## 51. Autonomia operacional dentro da fase
 
-Depois de concluir a fase solicitada:
+### Regra principal
 
-**PARE.**
+Quando o usuário autorizar explicitamente uma fase, por exemplo:
 
-Não:
+`Execute a F1`
 
-- comece a próxima fase;
-- faça commit;
-- faça push;
-- implemente melhorias opcionais;
-- altere arquitetura.
+essa autorização vale para TODAS as operações normais necessárias para concluir SOMENTE a F1.
 
-Apresente o relatório e aguarde nova instrução.
+O agente deve trabalhar autonomamente até:
 
----
+1. implementar o escopo;
+2. restaurar/instalar dependências necessárias;
+3. compilar;
+4. executar testes;
+5. corrigir erros pertencentes à fase;
+6. repetir build/testes quando necessário;
+7. revisar segurança e qualidade;
+8. revisar o Git diff;
+9. produzir o relatório final.
 
-# Regra final
+Não solicitar aprovação intermediária para operações rotineiras da fase quando o ambiente já permitir executá-las.
 
-O objetivo não é produzir a maior quantidade possível de código.
+### Operações autorizadas dentro da fase
 
-O objetivo é construir o Nexora de forma:
+Quando necessárias ao escopo atual, o agente pode executar autonomamente:
 
-```text
-segura
-multi-tenant
-modular
-testável
-configurável
-auditável
-evolutiva
-```
+- criar arquivos e diretórios;
+- editar arquivos;
+- gerar projetos;
+- restaurar dependências;
+- instalar dependências necessárias;
+- executar `dotnet restore`;
+- executar `dotnet build`;
+- executar `dotnet test`;
+- executar comandos EF Core necessários à fase;
+- executar `npm install`;
+- executar `npm ci`;
+- executar `npm run build`;
+- executar testes e lint do frontend;
+- executar Angular CLI;
+- executar Docker/Docker Compose para desenvolvimento e testes;
+- iniciar backend/frontend localmente;
+- executar health checks;
+- executar scripts do próprio projeto;
+- remover artefatos regeneráveis como `bin`, `obj`, `dist` e `node_modules` quando necessário;
+- executar comandos Git somente de leitura/inspeção;
+- corrigir automaticamente erros encontrados durante build, testes ou validação da fase.
 
-com mudanças pequenas, verificáveis e reversíveis.
+A autorização operacional não permite violar nenhuma outra regra deste AGENTS.md.
 
-Quando houver conflito entre velocidade e isolamento de tenant/segurança, priorize **segurança e correção**.
+### Ciclo autônomo permitido
+
+O agente deve preferir:
+
+FASE AUTORIZADA
+↓
+ANALISAR
+↓
+IMPLEMENTAR
+↓
+BUILD
+↓
+TESTAR
+↓
+ERRO?
+↓
+SIM → CORRIGIR → BUILD/TESTAR NOVAMENTE
+↓
+NÃO
+↓
+REVISAR
+↓
+RELATÓRIO
+↓
+PARAR
+
+Não devolver o controle ao usuário apenas porque ocorreu um erro comum de compilação, dependência, lint ou teste que possa ser corrigido com segurança dentro do escopo atual.
+
+### O que continua exigindo parada
+
+Mesmo em modo autônomo, o agente deve parar quando encontrar:
+
+- decisão arquitetural relevante ainda não aprovada;
+- alteração de ADR Accepted;
+- necessidade de implementar fase futura;
+- credencial ou segredo que o usuário precisa fornecer;
+- operação destrutiva sobre dados reais;
+- conflito com alterações pré-existentes que possam ser perdidas;
+- alteração significativa de arquitetura;
+- alteração da estratégia de multi-tenancy;
+- alteração da estratégia de autenticação/autorização;
+- alteração estrutural de Billing/Payments;
+- ação externa irreversível;
+- bloqueio real que não possa ser resolvido dentro da fase.
+
+Nesse caso retornar:
+
+`DECISÃO ARQUITETURAL NECESSÁRIA`
+
+ou:
+
+`STATUS: BLOQUEADO`
+
+conforme apropriado.
+
+### Git
+
+Autonomia operacional NÃO autoriza:
+
+- `git commit`;
+- `git push`;
+- force push;
+- rebase destrutivo;
+- apagar branch;
+- `git reset --hard`;
+- `git clean -fd`;
+- descartar alterações existentes.
+
+Ao concluir a fase, deixar as alterações no working tree para revisão.
+
+### Limite absoluto da autorização
+
+Uma autorização para executar `Fx` nunca autoriza `Fx+1`.
+
+Exemplo:
+
+`Execute F2`
+
+autoriza:
+
+F2 → implementação → build → testes → correções → revisão → relatório.
+
+NÃO autoriza:
+
+F2 → F3.
+
+Mesmo que:
+
+- todos os testes estejam verdes;
+- a F2 esteja 100% concluída;
+- a F3 seja uma continuação óbvia;
+- ainda exista contexto disponível;
+- o agente considere mais eficiente continuar.
+
+
+### Regra resumida
+
+**AUTONOMIA TOTAL NAS OPERAÇÕES NORMAIS DA FASE ATUAL.**
+
+
+**SEM COMMIT AUTOMÁTICO.**
+
+**SEM DECISÃO ARQUITETURAL IMPLÍCITA.**

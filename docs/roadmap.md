@@ -16,6 +16,8 @@ Cada fase é executada, validada e aprovada isoladamente. Uma fase não antecipa
 | F9 | Billing e assinaturas | ciclo da assinatura SaaS consistente |
 | F10 | Pagamentos | gateway inicial e webhooks idempotentes |
 | F11 | Notificações | abstrações e primeiro canal necessário |
+
+> QA visual pendente não bloqueante: consultar `frontend-visual-qa.md`. Implementação, build e testes estão OK; falta inspeção interativa nos viewports definidos.
 | F12 | Relatórios | métricas operacionais autorizadas e confiáveis |
 | F13 | Onboarding SaaS | wizard completo de ativação |
 | F14 | Hardening de produção | segurança, operação, CI/CD e recuperação validados |
@@ -25,16 +27,21 @@ Cada fase é executada, validada e aprovada isoladamente. Uma fase não antecipa
 
 Cada fase deve revisar escopo, segurança, autorização, tenancy quando aplicável, testes, migrations, documentação e diff. Falha em validação obrigatória resulta em status parcial ou bloqueado. Commit e avanço de fase dependem de solicitação/aprovação do responsável.
 
-## F0 atual
+## Fundação disponível após a F1
 
-A F0 entrega README, arquitetura, tenancy, segurança, Billing, diretrizes de API, roadmap e ADRs iniciais. Não cria solution, projetos, banco, migrations, Docker, backend ou frontend.
+A F1 estabelece solution .NET, API, persistência EF Core/PostgreSQL sem entidades de domínio, testes-base, Angular strict com PrimeNG e ambiente local em Docker Compose. Não inclui autenticação nem multi-tenancy funcional.
 
 ## Pendências que exigem decisão futura
 
-- F1: versões exatas da stack, estrutura física da solution e biblioteca de UI;
 - F2/F3: parâmetros de token e mecanismo público de seleção do tenant;
 - F8: representação técnica e política de timezone/agendamento;
 - F9/F10: regras comerciais de assinatura e gateway do MVP;
-- F14: topologia de produção, backup/restore, SLOs e CI/CD.
+- F14 concluída em código: Azure/Bicep, CI/CD OIDC, hardening, observabilidade, migrations controladas e runbooks. Provisionamento real permanece pendente e não bloqueante.
+- F15 concluída: template orientado por configuração, segmento semeado por migration e setup inicial opcional e tenant-scoped para Barbearia/Salão.
 
 Essas pendências devem ser resolvidas na fase apropriada e registradas em ADR quando arquiteturais.
+
+## Implementação F11/F12
+
+- F11: Resend atrás de `IEmailSender`, PostgreSQL Outbox, worker interno, fake, retry e WelcomeEmail. Validação externa Resend pendente e não bloqueante.
+- F12: indicadores tenant e plataforma com período limitado, autorização explícita, isolamento e dashboards responsivos.

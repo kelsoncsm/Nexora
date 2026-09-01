@@ -16,7 +16,9 @@ Entidades, serviços, contratos, endpoints e relatórios não devem misturar ess
 
 ## Billing da plataforma
 
-O contexto cobre `Tenant`, `Plan`, `Subscription`, eventos de assinatura, cobrança/invoice e pagamento da cobrança. Estados conceituais previstos incluem `Trialing`, `Active`, `PastDue`, `Cancelled` e `Expired`, mas regras de transição, trial, renovação, cancelamento, impostos, moeda, preços e tolerância à inadimplência ainda exigem requisitos comerciais antes da F9.
+O contexto cobre `Tenant`, `Plan`, `Subscription`, eventos de assinatura, cobrança/invoice e pagamento da cobrança. A F9 consolidou `Subscription` como fonte persistente única da relação Tenant → Plan, com estados `Trialing`, `Active`, `PastDue`, `Canceled` e `Expired`.
+
+Para o MVP, o trial persistido dura 14 dias, a periodicidade é mensal ou anual, o cancelamento normal ocorre ao fim do período e a inadimplência possui tolerância de sete dias. `Trialing`, `Active` e `PastDue` dentro da tolerância concedem entitlement; cancelamento agendado preserva o plano até `CurrentPeriodEnd`. Transições administrativas exigem PlatformAdmin, geram eventos e auditoria e não simulam pagamento externo. A decisão completa está em `ADR-0013`.
 
 Planos, features, overrides e limites são dados/configuração. Nomes de planos e valores apresentados no plano mestre são exemplos ou placeholders, não regras a hardcodar.
 
@@ -26,20 +28,18 @@ O contexto Payments cobre valores pagos por clientes do tenant em relação a ag
 
 ## Gateways e webhooks
 
-Integrações futuras usam uma porta como `IPaymentGateway`; regras de negócio não dependem diretamente de SDKs. Apenas um provedor será escolhido para o MVP antes da F10. Webhooks deverão validar autenticidade, ser idempotentes, tolerar duplicidade e reprocessamento, considerar eventos fora de ordem e não usar redirect do navegador como confirmação definitiva.
+Integrações usam a porta `IPaymentGateway`; regras de negócio não dependem diretamente de SDKs. O adaptador inicial é o Mercado Pago. Webhooks validam autenticidade e freshness da assinatura, são idempotentes, toleram duplicidade/reprocessamento e não usam redirect do navegador como confirmação definitiva.
+
+A F10 escolheu Mercado Pago como primeiro adaptador, Brasil/BRL como mercado inicial e `PlanPrice` como fonte interna de preço. Cada `BillingInvoice` é a obrigação comercial única identificada por assinatura e período de cobertura, preservando snapshots de plano, intervalo, valor, moeda, `CoverageStart` e `CoverageEnd`; uma invoice pode ter várias tentativas em `BillingPayment`. Pagamentos reconciliados nunca obtêm autoridade diretamente do payload do webhook. Consulte `ADR-0014`.
 
 Identificadores externos de evento e operação serão persistidos de modo a sustentar idempotência e reconciliação. Payloads e logs não devem expor secrets nem dados de cartão.
 
 ## Auditoria e consistência
 
-Mudanças relevantes de assinatura e pagamento geram histórico/auditoria. Processamento deverá definir fronteiras transacionais e comportamento diante de falhas antes da implementação. Métricas como MRR e churn só serão produzidas quando houver fonte confiável e sem misturar faturamento operacional dos tenants.
+Mudanças relevantes de assinatura e pagamento geram histórico/auditoria. Checkout usa identidade persistente da obrigação, constraint única, transação PostgreSQL e chave de idempotência estável. Métricas como MRR e churn só serão produzidas quando houver fonte confiável e sem misturar faturamento operacional dos tenants.
 
-## Decisões pendentes
+## Decisões futuras fora do MVP atual
 
-- provedor de pagamento do MVP;
 - países, moedas, impostos e emissão fiscal;
-- preços, limites e duração de trial;
-- política de cobrança, retry, grace period, cancelamento e reembolso;
-- origem de verdade e reconciliação do estado financeiro.
-
-Essas decisões não bloqueiam a F0 e devem ser aprovadas antes das fases F9/F10 afetadas.
+- expansão de moedas e política comercial de reembolso;
+- provedores adicionais.
