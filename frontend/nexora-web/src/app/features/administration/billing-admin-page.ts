@@ -1,3 +1,45 @@
-import {Component,inject,signal}from '@angular/core';import{FormsModule}from '@angular/forms';import{AdministrationService,BillingInvoice,PlanPrice}from './administration.service';
-@Component({selector:'app-billing-admin',imports:[FormsModule],template:`<main><header><h1>Preços e invoices</h1><a href="/admin/assinaturas">Assinaturas</a></header><form (ngSubmit)="save()"><input [(ngModel)]="planId" name="plan" required placeholder="Plan ID"><select [(ngModel)]="interval" name="interval"><option value="Monthly">Mensal</option><option value="Yearly">Anual</option></select><input [(ngModel)]="amount" name="amount" type="number" min="0.01" step="0.01" required><button>Salvar preço BRL</button></form><section><h2>Preços</h2>@for(x of prices();track x.id){<p>{{x.planId}} · {{x.billingInterval}} · {{x.amount}} {{x.currency}} · {{x.isActive?'ativo':'histórico'}}</p>}</section><section><h2>Invoices</h2>@for(x of invoices();track x.id){<p>{{x.tenantId}} · {{x.status}} · {{x.amount}} {{x.currency}}</p>}</section></main>`,styles:[`main{max-width:1000px;margin:auto;padding:2rem}header{display:flex;justify-content:space-between}form,section{background:white;padding:1rem;margin:1rem 0;border-radius:.8rem}form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.6rem}input,select,button{padding:.7rem}@media(max-width:700px){form{grid-template-columns:1fr}}`]})
-export class BillingAdminPage{private api=inject(AdministrationService);prices=signal<PlanPrice[]>([]);invoices=signal<BillingInvoice[]>([]);planId='';interval='Monthly';amount=0;constructor(){this.load()}load(){this.api.prices().subscribe(x=>this.prices.set(x));this.api.invoices().subscribe(x=>this.invoices.set(x))}save(){this.api.setPrice(this.planId,this.interval,this.amount).subscribe(()=>this.load())}}
+import { Component, inject, signal } from '@angular/core';
+import { SlicePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import {
+  AdministrationService,
+  BillingInvoice,
+  BillingPayment,
+  PlanPrice,
+} from './administration.service';
+
+@Component({
+  selector: 'app-billing-admin',
+  imports: [FormsModule, RouterLink, SlicePipe],
+  templateUrl: './billing-admin-page.html',
+  styleUrl: './billing-admin-page.scss',
+})
+export class BillingAdminPage {
+  private api = inject(AdministrationService);
+  prices = signal<PlanPrice[]>([]);
+  invoices = signal<BillingInvoice[]>([]);
+  payments = signal<BillingPayment[]>([]);
+  planId = '';
+  interval = 'Monthly';
+  amount = 0;
+  constructor() {
+    this.load();
+  }
+  badge(status: string) {
+    const s = (status || '').toLowerCase();
+    return s.includes('approv') || s.includes('paid')
+      ? 'nx-badge--success'
+      : s.includes('fail') || s.includes('reject')
+        ? 'nx-badge--danger'
+        : 'nx-badge--warning';
+  }
+  load() {
+    this.api.prices().subscribe((x) => this.prices.set(x));
+    this.api.invoices().subscribe((x) => this.invoices.set(x));
+    this.api.payments().subscribe({ next: (x) => this.payments.set(x), error: () => {} });
+  }
+  save() {
+    this.api.setPrice(this.planId, this.interval, this.amount).subscribe(() => this.load());
+  }
+}

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Nexora.Application.Identity;
 using Nexora.Application.Tenancy;
 
 namespace Nexora.Api.Tenancy;
@@ -27,8 +28,15 @@ public sealed class TenantContextMiddleware(RequestDelegate next)
             initializer.Initialize(tenantId, userId);
             if(context.User.Identity is ClaimsIdentity identity)
             {
-                foreach(var claim in identity.FindAll("permission").ToArray())identity.RemoveClaim(claim);
-                foreach(var permission in await tenancy.GetPermissionsAsync(tenantId,userId,context.RequestAborted))identity.AddClaim(new Claim("permission",permission));
+                // Swap the token's permission claims for the tenant-scoped grants, but keep the
+                // global identity permissions (e.g. identity.profile) so the user's own identity
+                // endpoints stay reachable inside a tenant session.
+                foreach(var claim in identity.FindAll("permission").ToArray())
+                    if(!GlobalPermissions.All.Contains(claim.Value,StringComparer.Ordinal))
+                        identity.RemoveClaim(claim);
+                var existing=identity.FindAll("permission").Select(x=>x.Value).ToHashSet(StringComparer.Ordinal);
+                foreach(var permission in await tenancy.GetPermissionsAsync(tenantId,userId,context.RequestAborted))
+                    if(existing.Add(permission))identity.AddClaim(new Claim("permission",permission));
             }
         }
         await next(context);

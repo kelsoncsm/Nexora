@@ -10,6 +10,7 @@ using Nexora.Application.Identity;
 
 namespace Nexora.IntegrationTests;
 
+[Collection("Postgres")]
 public sealed class PostgresConcurrencyTests
 {
     [Fact]

@@ -28,6 +28,23 @@ public sealed class TenantRole
     public Guid Id{get;private set;} public Guid TenantId{get;private set;} public Tenant Tenant{get;private set;}=null!;
     public string Name{get;private set;}=string.Empty; public string Description{get;private set;}=string.Empty; public bool IsSystem{get;private set;}
     public ICollection<TenantRolePermission> Permissions{get;}=[]; public ICollection<TenantUser> Users{get;}=[];
+
+    /// <summary>Renames a custom role. System roles keep their identity and reject renames.</summary>
+    public void Update(string name, string description)
+    {
+        if (IsSystem) throw new InvalidOperationException("System roles cannot be modified.");
+        Name = name;
+        Description = description;
+    }
+
+    /// <summary>Replaces the role's permission set. Callers validate the keys against the catalog.</summary>
+    public void ReplacePermissions(IEnumerable<string> permissionKeys)
+    {
+        if (IsSystem) throw new InvalidOperationException("System role permissions cannot be modified.");
+        Permissions.Clear();
+        foreach (var key in permissionKeys.Distinct(StringComparer.Ordinal))
+            Permissions.Add(new TenantRolePermission(Id, key));
+    }
 }
 
 public sealed class TenantRolePermission

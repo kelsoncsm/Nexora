@@ -16,6 +16,12 @@ public sealed class Tenant
     public ICollection<TenantRole> Roles { get; } = [];
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;
+    /// <summary>Updates the tenant-editable profile fields. Slug and ownership are immutable here.</summary>
+    public void UpdateProfile(string name, string timeZoneId)
+    {
+        Name = name;
+        TimeZoneId = timeZoneId;
+    }
     public void AddInitialAdministrator(Guid userId, IEnumerable<string> permissions, DateTimeOffset now)
     {
         var role = new TenantRole(Id, "ADMIN", "Tenant administrator", true);

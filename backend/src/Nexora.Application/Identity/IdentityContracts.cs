@@ -5,6 +5,16 @@ public sealed record LoginCommand(string Email, string Password);
 public sealed record AuthenticatedSession(string AccessToken, DateTimeOffset AccessTokenExpiresAt, string RefreshToken);
 public sealed record CurrentUser(Guid Id, string Email, IReadOnlyCollection<string> Permissions);
 
+/// <summary>
+/// Permission keys that belong to the user's global identity and must survive the
+/// per-request tenant permission swap done by the tenant context middleware.
+/// </summary>
+public static class GlobalPermissions
+{
+    public const string Profile = "identity.profile";
+    public static readonly string[] All = [Profile];
+}
+
 public interface IIdentityService
 {
     Task<AuthenticatedSession> RegisterAsync(RegisterCommand command, CancellationToken cancellationToken);

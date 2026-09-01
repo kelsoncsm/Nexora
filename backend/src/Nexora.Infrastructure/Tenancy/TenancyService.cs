@@ -42,7 +42,7 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
 
     public async Task<IReadOnlyCollection<TenantMembership>> GetMembersAsync(Guid tenantId, CancellationToken ct) =>
         await dbContext.TenantUsers.Where(x => x.TenantId == tenantId)
-            .Select(x => new TenantMembership(x.Id, x.UserId, x.User.Email, x.TenantRole.Name, x.IsActive)).ToArrayAsync(ct);
+            .Select(x => new TenantMembership(x.Id, x.UserId, x.User.Email, x.TenantRole.Name, x.TenantRoleId, x.IsActive)).ToArrayAsync(ct);
 
     public async Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, CancellationToken ct)
     {
