@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { NxAvatar, NxBadge, NxCard, NxPageHeader } from '../../shared/ui';
 
 interface CurrentUser {
   id: string;
@@ -11,6 +12,7 @@ interface CurrentUser {
 
 @Component({
   selector: 'app-profile-page',
+  imports: [NxPageHeader, NxCard, NxAvatar, NxBadge],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.scss',
 })

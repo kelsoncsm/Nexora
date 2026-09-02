@@ -38,12 +38,13 @@
         }
       </div>
       @if (error()) {
-        <p class="nx-error" role="alert">{{ error() }}</p>
+        <p class="nx-form-error" role="alert">{{ error() }}</p>
       }
       <footer>
-        <button class="secondary" (click)="skip()">Configurar depois</button
-        ><button [disabled]="busy() || !valid()" (click)="apply()">
-          {{ busy() ? 'Salvando…' : 'Iniciar operação' }}
+        <button nx-button variant="secondary" (click)="skip()">Configurar depois</button>
+        <span></span>
+        <button nx-button [loading]="busy()" [disabled]="!valid()" (click)="apply()">
+          Iniciar operação
         </button>
       </footer>
     </section>
@@ -53,7 +54,7 @@
       <p>
         Este segmento não possui um template inicial. Você pode configurar serviços normalmente.
       </p>
-      <button (click)="skip()">Continuar</button>
+      <button nx-button (click)="skip()">Continuar</button>
     </section>
   }
 </main>

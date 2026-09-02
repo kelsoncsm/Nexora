@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { TenantAdminService, TenantPermissionDescriptor, TenantRole } from './tenant-admin.service';
+import { NxBadge, NxButton, NxCard, NxFormField, NxPageHeader } from '../../shared/ui';
 
 const MODULE_LABELS: Record<string, string> = {
   customers: 'Clientes',
@@ -29,7 +30,7 @@ interface ModuleGroup {
 
 @Component({
   selector: 'app-permissions-page',
-  imports: [FormsModule],
+  imports: [FormsModule, NxPageHeader, NxCard, NxFormField, NxButton, NxBadge],
   templateUrl: './permissions-page.html',
   styleUrl: './permissions-page.scss',
 })

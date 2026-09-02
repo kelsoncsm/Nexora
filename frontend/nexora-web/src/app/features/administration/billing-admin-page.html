@@ -1,154 +1,90 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <p class="nx-eyebrow">Platform Admin</p>
-      <h1>Preços e invoices</h1>
-    </div>
-    <div class="nx-ph-actions">
-      <a class="nx-btn nx-btn--secondary" routerLink="/admin/assinaturas">Assinaturas</a>
-    </div>
-  </div>
+<nx-page-header title="Preços e invoices" subtitle="Platform Admin">
+  <a nx-button variant="secondary" routerLink="/admin/assinaturas">Assinaturas</a>
+</nx-page-header>
 
-  <form class="nx-card--flat nx-price-form" (ngSubmit)="save()">
-    <div class="nx-form-group">
-      <label class="nx-form-label">Plan ID</label
-      ><input
-        class="nx-form-control"
-        [(ngModel)]="planId"
-        name="plan"
-        required
-        placeholder="uuid"
-      />
-    </div>
-    <div class="nx-form-group">
-      <label class="nx-form-label">Intervalo</label
-      ><select class="nx-form-control" [(ngModel)]="interval" name="interval">
+<nx-card [flat]="true">
+  <form class="nx-price-form" (ngSubmit)="save()">
+    <nx-form-field label="Plan ID">
+      <input class="nx-form-control" [(ngModel)]="planId" name="plan" required placeholder="uuid" />
+    </nx-form-field>
+    <nx-form-field label="Intervalo">
+      <select class="nx-form-control" [(ngModel)]="interval" name="interval">
         <option value="Monthly">Mensal</option>
         <option value="Yearly">Anual</option>
       </select>
-    </div>
-    <div class="nx-form-group">
-      <label class="nx-form-label">Valor (BRL)</label
-      ><input
-        class="nx-form-control"
-        [(ngModel)]="amount"
-        name="amount"
-        type="number"
-        min="0.01"
-        step="0.01"
-        required
-      />
-    </div>
-    <button class="nx-btn" type="submit">Salvar preço</button>
+    </nx-form-field>
+    <nx-form-field label="Valor (BRL)">
+      <input class="nx-form-control" [(ngModel)]="amount" name="amount" type="number" min="0.01" step="0.01" required />
+    </nx-form-field>
+    <button nx-button type="submit">Salvar preço</button>
   </form>
+</nx-card>
 
-  <div class="nx-grid nx-grid--2">
-    <div class="nx-card">
-      <h2 class="nx-section-title">Preços</h2>
-      <div class="nx-table-wrap">
-        <table class="nx-table" style="min-width: 0">
-          <thead>
-            <tr>
-              <th>Plano</th>
-              <th>Intervalo</th>
-              <th>Valor</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (x of prices(); track x.id) {
-              <tr>
-                <td data-label="Plano">{{ x.planId | slice: 0 : 8 }}</td>
-                <td data-label="Intervalo">{{ x.billingInterval }}</td>
-                <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
-                <td data-label="Estado">
-                  <span
-                    class="nx-badge"
-                    [class]="x.isActive ? 'nx-badge--success' : 'nx-badge--neutral'"
-                    >{{ x.isActive ? 'ativo' : 'histórico' }}</span
-                  >
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="4" style="padding: 0">
-                  <div class="nx-empty"><b>Nenhum preço</b></div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="nx-card">
-      <h2 class="nx-section-title">Invoices</h2>
-      <div class="nx-table-wrap">
-        <table class="nx-table" style="min-width: 0">
-          <thead>
-            <tr>
-              <th>Tenant</th>
-              <th>Status</th>
-              <th>Valor</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (x of invoices(); track x.id) {
-              <tr>
-                <td data-label="Tenant">{{ x.tenantId | slice: 0 : 8 }}</td>
-                <td data-label="Status">
-                  <span class="nx-badge nx-badge--neutral">{{ x.status }}</span>
-                </td>
-                <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="3" style="padding: 0">
-                  <div class="nx-empty"><b>Nenhuma invoice</b></div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="nx-card" style="margin-top: var(--nx-space-4)">
-    <h2 class="nx-section-title">Pagamentos</h2>
-    <div class="nx-table-wrap">
-      <table class="nx-table">
+<div class="nx-grid nx-grid--2">
+  <div>
+    <h2 class="nx-section-title">Preços</h2>
+    <nx-data-table [empty]="!prices().length" emptyIcon="i-dollar" emptyTitle="Nenhum preço">
+      <table class="nx-table" style="min-width: 0">
         <thead>
-          <tr>
-            <th>Pagamento externo</th>
-            <th>Método</th>
-            <th>Status</th>
-            <th>Valor</th>
-            <th>Processado</th>
-          </tr>
+          <tr><th>Plano</th><th>Intervalo</th><th>Valor</th><th>Estado</th></tr>
         </thead>
         <tbody>
-          @for (x of payments(); track x.id) {
+          @for (x of prices(); track x.id) {
             <tr>
-              <td data-label="Pagamento">{{ x.externalPaymentId }}</td>
-              <td data-label="Método">{{ x.method }}</td>
-              <td data-label="Status">
-                <span class="nx-badge" [class]="badge(x.status)">{{ x.status }}</span>
-              </td>
+              <td data-label="Plano">{{ x.planId | slice: 0 : 8 }}</td>
+              <td data-label="Intervalo">{{ x.billingInterval }}</td>
               <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
-              <td data-label="Processado">
-                {{ x.processedAt ? (x.processedAt | slice: 0 : 16) : '—' }}
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5" style="padding: 0">
-                <div class="nx-empty"><b>Nenhum pagamento registrado</b></div>
+              <td data-label="Estado">
+                <nx-badge [tone]="x.isActive ? 'success' : 'neutral'">{{ x.isActive ? 'ativo' : 'histórico' }}</nx-badge>
               </td>
             </tr>
           }
         </tbody>
       </table>
-    </div>
+    </nx-data-table>
   </div>
-</main>
+
+  <div>
+    <h2 class="nx-section-title">Invoices</h2>
+    <nx-data-table [empty]="!invoices().length" emptyIcon="i-dollar" emptyTitle="Nenhuma invoice">
+      <table class="nx-table" style="min-width: 0">
+        <thead>
+          <tr><th>Tenant</th><th>Status</th><th>Valor</th></tr>
+        </thead>
+        <tbody>
+          @for (x of invoices(); track x.id) {
+            <tr>
+              <td data-label="Tenant">{{ x.tenantId | slice: 0 : 8 }}</td>
+              <td data-label="Status"><nx-badge>{{ x.status }}</nx-badge></td>
+              <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </nx-data-table>
+  </div>
+</div>
+
+<section style="margin-top: var(--nx-space-4)">
+  <h2 class="nx-section-title">Pagamentos</h2>
+  <nx-data-table [empty]="!payments().length" emptyIcon="i-dollar" emptyTitle="Nenhum pagamento registrado">
+    <table class="nx-table">
+      <thead>
+        <tr>
+          <th>Pagamento externo</th><th>Método</th><th>Status</th><th>Valor</th><th>Processado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (x of payments(); track x.id) {
+          <tr>
+            <td data-label="Pagamento">{{ x.externalPaymentId }}</td>
+            <td data-label="Método">{{ x.method }}</td>
+            <td data-label="Status"><nx-badge [tone]="badge(x.status)">{{ x.status }}</nx-badge></td>
+            <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
+            <td data-label="Processado">{{ x.processedAt ? (x.processedAt | slice: 0 : 16) : '—' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </nx-data-table>
+</section>

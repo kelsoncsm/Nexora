@@ -1,12 +1,32 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { APP_CONFIG } from '../../core/config/app-config';
+import {
+  NxAvatar,
+  NxButton,
+  NxConfirmDialog,
+  NxDataTable,
+  NxFormField,
+  NxModal,
+  NxPageHeader,
+  NxSearchInput,
+} from '../../shared/ui';
 
 @Component({
   selector: 'app-catalog-page',
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    NxPageHeader,
+    NxButton,
+    NxSearchInput,
+    NxDataTable,
+    NxAvatar,
+    NxModal,
+    NxConfirmDialog,
+    NxFormField,
+  ],
   templateUrl: './catalog-page.html',
   styleUrl: './catalog-page.scss',
 })
@@ -14,32 +34,62 @@ export class CatalogPage {
   private http = inject(HttpClient);
   private config = inject(APP_CONFIG);
   kind = inject(ActivatedRoute).snapshot.data['kind'] as string;
+  isPros = this.kind === 'professionals';
   items = signal<any[]>([]);
-  editing = signal(false);
+  services = signal<any[]>([]);
+  loading = signal(true);
+  modalOpen = signal(false);
+  confirming = signal<any | null>(null);
+  saving = signal(false);
+  linkOpen = signal(false);
+  search = '';
+  q = signal('');
   form: any = {};
   professionalId = '';
   serviceId = '';
+
+  readonly title = this.isPros ? 'Profissionais' : 'Serviços';
+  readonly subtitle = this.isPros
+    ? 'Equipe que realiza os atendimentos.'
+    : 'Catálogo de serviços oferecidos.';
+  readonly noun = this.isPros ? 'profissional' : 'serviço';
+
+  readonly visible = computed(() => {
+    const term = this.q().trim().toLowerCase();
+    if (!term) return this.items();
+    return this.items().filter((x) =>
+      `${x.name ?? ''} ${x.email ?? ''} ${x.description ?? ''}`.toLowerCase().includes(term),
+    );
+  });
+
   constructor() {
     this.load();
-  }
-  initials(name: string) {
-    const p = (name || '').trim().split(/\s+/);
-    return ((p[0]?.[0] ?? '?') + (p[1]?.[0] ?? '')).toUpperCase();
+    if (this.isPros)
+      this.http
+        .get<any[]>(`${this.config.apiBaseUrl}/services`)
+        .subscribe((x) => this.services.set(x));
   }
   startNew() {
     this.form = {};
-    this.editing.set(true);
-  }
-  load() {
-    this.http
-      .get<any[]>(`${this.config.apiBaseUrl}/${this.kind}`)
-      .subscribe((x) => this.items.set(x));
+    this.modalOpen.set(true);
   }
   edit(x: any) {
     this.form = { ...x };
-    this.editing.set(true);
+    this.modalOpen.set(true);
+  }
+  load() {
+    this.loading.set(true);
+    this.http.get<any[]>(`${this.config.apiBaseUrl}/${this.kind}`).subscribe({
+      next: (x) => {
+        this.items.set(x);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
   save() {
+    if (!this.form.name?.trim() || this.saving()) return;
+    this.saving.set(true);
     const body =
       this.kind === 'services'
         ? {
@@ -52,21 +102,36 @@ export class CatalogPage {
     const req = this.form.id
       ? this.http.put(`${this.config.apiBaseUrl}/${this.kind}/${this.form.id}`, body)
       : this.http.post(`${this.config.apiBaseUrl}/${this.kind}`, body);
-    req.subscribe(() => {
-      this.editing.set(false);
-      this.form = {};
+    req.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.modalOpen.set(false);
+        this.form = {};
+        this.load();
+      },
+      error: () => this.saving.set(false),
+    });
+  }
+  remove() {
+    const x = this.confirming();
+    if (!x) return;
+    this.http.delete(`${this.config.apiBaseUrl}/${this.kind}/${x.id}`).subscribe(() => {
+      this.confirming.set(null);
       this.load();
     });
   }
-  remove(id: string) {
-    this.http.delete(`${this.config.apiBaseUrl}/${this.kind}/${id}`).subscribe(() => this.load());
-  }
   link() {
+    if (!this.professionalId || !this.serviceId) return;
     this.http
       .put(
         `${this.config.apiBaseUrl}/professionals/${this.professionalId}/services/${this.serviceId}`,
         {},
       )
-      .subscribe(() => this.load());
+      .subscribe(() => {
+        this.linkOpen.set(false);
+        this.professionalId = '';
+        this.serviceId = '';
+        this.load();
+      });
   }
 }

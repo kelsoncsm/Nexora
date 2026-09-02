@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TenantAdminService, TenantProfile } from './tenant-admin.service';
+import { NxBadge, NxButton, NxCard, NxFormField, NxPageHeader } from '../../shared/ui';
 
 const COMMON_ZONES = [
   'America/Sao_Paulo',
@@ -27,7 +28,7 @@ const COMMON_ZONES = [
 
 @Component({
   selector: 'app-empresa-page',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, NxPageHeader, NxCard, NxFormField, NxButton, NxBadge],
   templateUrl: './empresa-page.html',
   styleUrl: './empresa-page.scss',
 })

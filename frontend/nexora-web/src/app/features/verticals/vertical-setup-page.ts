@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { NxButton } from '../../shared/ui';
 
 interface Preset {
   code: string;
@@ -23,7 +24,7 @@ interface Setup {
 
 @Component({
   selector: 'app-vertical-setup-page',
-  imports: [FormsModule],
+  imports: [FormsModule, NxButton],
   templateUrl: './vertical-setup-page.html',
   styleUrl: './vertical-setup-page.scss',
 })

@@ -1,94 +1,54 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <p class="nx-eyebrow">Platform Admin</p>
-      <h1>Assinaturas</h1>
-    </div>
-    <div class="nx-ph-actions">
-      <a class="nx-btn nx-btn--secondary" routerLink="/admin">Voltar ao painel</a>
-    </div>
-  </div>
+<nx-page-header title="Assinaturas" subtitle="Platform Admin">
+  <a nx-button variant="secondary" routerLink="/admin">Voltar ao painel</a>
+</nx-page-header>
 
-  <form class="nx-card--flat nx-sub-form" (ngSubmit)="create()">
-    <div class="nx-form-group">
-      <label class="nx-form-label">Tenant ID</label
-      ><input
-        class="nx-form-control"
-        [(ngModel)]="tenantId"
-        name="tenant"
-        required
-        placeholder="uuid"
-      />
-    </div>
-    <div class="nx-form-group">
-      <label class="nx-form-label">Plan ID</label
-      ><input
-        class="nx-form-control"
-        [(ngModel)]="planId"
-        name="plan"
-        required
-        placeholder="uuid"
-      />
-    </div>
-    <div class="nx-form-group">
-      <label class="nx-form-label">Intervalo</label
-      ><select class="nx-form-control" [(ngModel)]="interval" name="interval">
+<nx-card [flat]="true">
+  <form class="nx-sub-form" (ngSubmit)="create()">
+    <nx-form-field label="Tenant ID">
+      <input class="nx-form-control" [(ngModel)]="tenantId" name="tenant" required placeholder="uuid" />
+    </nx-form-field>
+    <nx-form-field label="Plan ID">
+      <input class="nx-form-control" [(ngModel)]="planId" name="plan" required placeholder="uuid" />
+    </nx-form-field>
+    <nx-form-field label="Intervalo">
+      <select class="nx-form-control" [(ngModel)]="interval" name="interval">
         <option value="Monthly">Mensal</option>
         <option value="Yearly">Anual</option>
       </select>
-    </div>
-    <button class="nx-btn" type="submit">Iniciar trial</button>
+    </nx-form-field>
+    <button nx-button type="submit">Iniciar trial</button>
   </form>
+</nx-card>
 
-  <div class="nx-stack">
-    @for (item of subscriptions(); track item.id) {
-      <article class="nx-card">
-        <div class="nx-sub-head">
-          <span class="nx-badge" [class]="badge(item.status)">{{ item.status }}</span>
-          <span class="nx-sub-plan">{{ item.planCode }} · {{ item.billingInterval }}</span>
-        </div>
-        <p class="nx-form-hint">Tenant {{ item.tenantId }}</p>
-        <p class="nx-form-hint">
-          Período até {{ item.currentPeriodEnd | date: 'short' }}
-          @if (item.cancelAtPeriodEnd) {
-            · cancelamento programado
-          }
-        </p>
-        <div class="nx-sub-actions">
-          <button class="nx-btn nx-btn--sm nx-btn--outline" (click)="act(item, 'activate')">
-            Ativar / regularizar
-          </button>
-          <button class="nx-btn nx-btn--sm nx-btn--secondary" (click)="changePlan(item)">
-            Trocar plano
-          </button>
-          <button class="nx-btn nx-btn--sm nx-btn--secondary" (click)="act(item, 'mark-past-due')">
-            Marcar inadimplente
-          </button>
-          <button
-            class="nx-btn nx-btn--sm nx-btn--secondary"
-            (click)="act(item, 'cancel-at-period-end')"
-          >
-            Cancelar no fim
-          </button>
-          <button
-            class="nx-btn nx-btn--sm nx-btn--danger"
-            (click)="act(item, 'cancel-immediately')"
-          >
-            Cancelar agora
-          </button>
-        </div>
-      </article>
-    } @empty {
-      <div class="nx-card">
-        <div class="nx-empty">
-          <svg class="nx-ico"><use href="#i-repeat" /></svg><b>Nenhuma assinatura cadastrada</b
-          ><span>Inicie um trial acima para começar.</span>
-        </div>
+<div class="nx-stack">
+  @for (item of subscriptions(); track item.id) {
+    <nx-card>
+      <div class="nx-sub-head">
+        <nx-badge [tone]="badge(item.status)">{{ item.status }}</nx-badge>
+        <span class="nx-sub-plan">{{ item.planCode }} · {{ item.billingInterval }}</span>
       </div>
-    }
-  </div>
-
-  @if (error()) {
-    <aside class="nx-toast" role="alert">{{ error() }}</aside>
+      <p class="nx-form-hint">Tenant {{ item.tenantId }}</p>
+      <p class="nx-form-hint">
+        Período até {{ item.currentPeriodEnd | date: 'short' }}
+        @if (item.cancelAtPeriodEnd) {
+          · cancelamento programado
+        }
+      </p>
+      <div class="nx-sub-actions">
+        <button nx-button size="sm" variant="outline" (click)="act(item, 'activate')">Ativar / regularizar</button>
+        <button nx-button size="sm" variant="secondary" (click)="changePlan(item)">Trocar plano</button>
+        <button nx-button size="sm" variant="secondary" (click)="act(item, 'mark-past-due')">Marcar inadimplente</button>
+        <button nx-button size="sm" variant="secondary" (click)="act(item, 'cancel-at-period-end')">Cancelar no fim</button>
+        <button nx-button size="sm" variant="danger" (click)="act(item, 'cancel-immediately')">Cancelar agora</button>
+      </div>
+    </nx-card>
+  } @empty {
+    <nx-card>
+      <nx-empty-state icon="i-repeat" title="Nenhuma assinatura cadastrada" description="Inicie um trial acima para começar." />
+    </nx-card>
   }
-</main>
+</div>
+
+@if (error()) {
+  <aside class="nx-toast" role="alert">{{ error() }}</aside>
+}

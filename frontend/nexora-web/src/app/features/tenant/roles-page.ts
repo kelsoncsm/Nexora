@@ -2,10 +2,18 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TenantAdminService, TenantRole } from './tenant-admin.service';
+import {
+  NxBadge,
+  NxButton,
+  NxDataTable,
+  NxFormField,
+  NxModal,
+  NxPageHeader,
+} from '../../shared/ui';
 
 @Component({
   selector: 'app-roles-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, NxPageHeader, NxButton, NxDataTable, NxModal, NxFormField, NxBadge],
   templateUrl: './roles-page.html',
   styleUrl: './roles-page.scss',
 })

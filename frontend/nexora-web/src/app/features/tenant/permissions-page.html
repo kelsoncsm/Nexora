@@ -1,47 +1,40 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>Perfis e Permissões</h1>
-      <p>Escolha um papel e ajuste o que ele pode fazer.</p>
+<nx-page-header title="Perfis e Permissões" subtitle="Escolha um papel e ajuste o que ele pode fazer." />
+
+@if (error()) {
+  <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+}
+@if (saved()) {
+  <div class="nx-alert nx-alert--success">Permissões atualizadas.</div>
+}
+
+<nx-card>
+  <nx-form-field label="Papel" for="role">
+    <select
+      id="role"
+      class="nx-form-control"
+      style="max-width: 360px"
+      [ngModel]="selectedRoleId()"
+      (ngModelChange)="selectRole($event)"
+    >
+      <option value="" disabled>Selecione um papel</option>
+      @for (r of roles(); track r.id) {
+        <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (sistema)' : '' }}</option>
+      }
+    </select>
+  </nx-form-field>
+</nx-card>
+
+@if (current(); as role) {
+  <nx-card>
+    <div class="nx-perm-head">
+      <h2 class="nx-section-title" style="margin: 0">{{ role.name }}</h2>
+      @if (role.isSystem) {
+        <nx-badge tone="info">Somente leitura</nx-badge>
+      }
+      <span class="nx-form-hint">{{ selectedKeys().size }} de {{ catalog().length }} permissões</span>
     </div>
-  </div>
 
-  @if (error()) {
-    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
-  }
-  @if (saved()) {
-    <div class="nx-alert nx-alert--success">Permissões atualizadas.</div>
-  }
-
-  <div class="nx-card">
-    <div class="nx-form-group" style="max-width: 360px; margin-bottom: 0">
-      <label class="nx-form-label" for="role">Papel</label>
-      <select
-        id="role"
-        class="nx-form-control"
-        [ngModel]="selectedRoleId()"
-        (ngModelChange)="selectRole($event)"
-      >
-        <option value="" disabled>Selecione um papel</option>
-        @for (r of roles(); track r.id) {
-          <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (sistema)' : '' }}</option>
-        }
-      </select>
-    </div>
-  </div>
-
-  @if (current(); as role) {
-    <form class="nx-card" (ngSubmit)="save()">
-      <div class="nx-perm-head">
-        <h2 class="nx-section-title" style="margin: 0">{{ role.name }}</h2>
-        @if (role.isSystem) {
-          <span class="nx-badge nx-badge--info">Somente leitura</span>
-        }
-        <span class="nx-form-hint"
-          >{{ selectedKeys().size }} de {{ catalog().length }} permissões</span
-        >
-      </div>
-
+    <form (ngSubmit)="save()">
       @for (g of groups(); track g.module) {
         <fieldset class="nx-perm-group">
           <legend>
@@ -65,9 +58,7 @@
                   [checked]="selectedKeys().has(p.key)"
                   (change)="toggle(p.key, $any($event.target).checked)"
                 />
-                <span
-                  >{{ actionLabel(p.action) }} <code>{{ p.key }}</code></span
-                >
+                <span>{{ actionLabel(p.action) }} <code>{{ p.key }}</code></span>
               </label>
             }
           </div>
@@ -76,9 +67,9 @@
 
       @if (!role.isSystem) {
         <div class="nx-form-actions">
-          <button class="nx-btn nx-btn--secondary" type="button" (click)="reset()">Desfazer</button>
-          <button class="nx-btn" type="submit" [disabled]="busy() || !dirty()">
-            {{ busy() ? 'Salvando…' : 'Salvar permissões' }}
+          <button type="button" class="nx-btn nx-btn--secondary" (click)="reset()">Desfazer</button>
+          <button nx-button type="submit" [loading]="busy()" [disabled]="!dirty()">
+            Salvar permissões
           </button>
         </div>
       } @else {
@@ -87,5 +78,5 @@
         </p>
       }
     </form>
-  }
-</main>
+  </nx-card>
+}

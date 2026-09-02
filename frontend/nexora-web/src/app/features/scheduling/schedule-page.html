@@ -1,226 +1,142 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>Agenda</h1>
-      <p>Visualize e gerencie seus agendamentos · fuso {{ timeZoneId() || 'carregando…' }}</p>
-    </div>
-  </div>
+<nx-page-header
+  title="Agenda"
+  [subtitle]="'Visualize e gerencie seus agendamentos · fuso ' + (timeZoneId() || 'carregando…')"
+>
+  <button nx-button variant="secondary" (click)="showHours.set(true)">Disponibilidade</button>
+  <button nx-button variant="secondary" (click)="showBlock.set(true)">Bloqueio</button>
+  <button nx-button icon="i-plus" (click)="editing.set(true)">Novo agendamento</button>
+</nx-page-header>
 
-  <div class="nx-agenda-toolbar">
-    <div class="nx-agenda-nav">
-      <input
-        class="nx-form-control"
-        type="date"
-        [(ngModel)]="selectedDate"
-        (change)="load()"
-        style="width: auto"
-      />
-    </div>
-    <div class="nx-agenda-actions">
-      <div class="nx-view-switch">
-        <button (click)="setMode('day')" [class.active]="mode() === 'day'">Dia</button>
-        <button (click)="setMode('week')" [class.active]="mode() === 'week'">Semana</button>
-      </div>
-      <button class="nx-btn" (click)="editing.set(true)">
-        <svg class="nx-ico"><use href="#i-plus" /></svg>Novo agendamento
-      </button>
-      <button class="nx-btn nx-btn--secondary" (click)="showHours.set(!showHours())">
-        Disponibilidade
-      </button>
-      <button class="nx-btn nx-btn--secondary" (click)="showBlock.set(!showBlock())">
-        Bloqueio
-      </button>
-    </div>
+<div class="nx-agenda-toolbar">
+  <div class="nx-agenda-nav">
+    <input class="nx-form-control" type="date" [(ngModel)]="selectedDate" (change)="load()" style="width: auto" />
   </div>
+  <div class="nx-view-switch">
+    <button (click)="setMode('day')" [class.active]="mode() === 'day'">Dia</button>
+    <button (click)="setMode('week')" [class.active]="mode() === 'week'">Semana</button>
+  </div>
+</div>
 
-  @if (editing()) {
-    <form class="nx-card" (ngSubmit)="saveAppointment()" style="margin-bottom: var(--nx-space-4)">
-      <h2 class="nx-section-title">{{ form.id ? 'Editar' : 'Novo' }} agendamento</h2>
-      <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do cliente</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="form.customerId"
-            name="customer"
-            required
-            placeholder="uuid"
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do profissional</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="form.professionalId"
-            name="professional"
-            required
-            placeholder="uuid"
-          />
-        </div>
+<div class="nx-agenda-list" [class.week]="mode() === 'week'">
+  @for (item of visible(); track item.id) {
+    <article class="nx-card nx-appt-card" [class]="'nx-appt-card--' + toneFor(item.status)">
+      <div class="nx-appt-time">
+        <svg class="nx-ico"><use href="#i-clock" /></svg>
+        {{ item.startAtLocal | slice: 11 : 16 }}–{{ item.endAtLocal | slice: 11 : 16 }}
       </div>
-      <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do serviço</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="form.serviceId"
-            name="service"
-            required
-            placeholder="uuid"
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">Início (com offset)</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="form.startAt"
-            name="start"
-            required
-            placeholder="2026-09-15T14:00:00-03:00"
-          />
-        </div>
+      <div class="nx-appt-meta">
+        <nx-badge [tone]="badgeTone(item.status)">{{ statusLabel(item.status) }}</nx-badge>
+        <span class="nx-appt-day">{{ item.startAtLocal | slice: 0 : 10 }}</span>
       </div>
-      <div class="nx-form-group">
-        <label class="nx-form-label">Observações</label
-        ><textarea class="nx-form-control" [(ngModel)]="form.notes" name="notes"></textarea>
+      <p class="nx-appt-prof">Profissional {{ item.professionalId | slice: 0 : 8 }}</p>
+      @if (item.notes) {
+        <p class="nx-appt-notes">{{ item.notes }}</p>
+      }
+      <div class="nx-appt-actions">
+        <button nx-button variant="ghost" size="sm" (click)="edit(item)">Editar</button>
+        <button nx-button variant="outline" size="sm" (click)="status(item, 'Confirmed')">Confirmar</button>
+        <button nx-button variant="danger" size="sm" (click)="cancel(item)">Cancelar</button>
       </div>
-      <p class="nx-form-hint">
-        Informe offset explícito. A API valida o horário contra {{ timeZoneId() }}.
-      </p>
-      <div class="nx-form-actions">
-        <button type="button" class="nx-btn nx-btn--secondary" (click)="closeForm()">
-          Cancelar
-        </button>
-        <button type="submit" class="nx-btn">Salvar</button>
+    </article>
+  } @empty {
+    <div class="nx-card" style="grid-column: 1/-1">
+      <div class="nx-empty">
+        <svg class="nx-ico"><use href="#i-calendar" /></svg><b>Nenhum agendamento no período</b>
+        <span>Ajuste a data ou crie um novo agendamento.</span>
       </div>
-    </form>
+    </div>
   }
+</div>
 
-  @if (showHours()) {
-    <form class="nx-card" (ngSubmit)="saveHours()" style="margin-bottom: var(--nx-space-4)">
-      <h2 class="nx-section-title">Horário recorrente local</h2>
+@if (editing()) {
+  <nx-modal [title]="(form.id ? 'Editar' : 'Novo') + ' agendamento'" (close)="closeForm()">
+    <form (ngSubmit)="saveAppointment()">
       <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do profissional</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="hours.professionalId"
-            name="hp"
-            required
-            placeholder="uuid"
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">Dia da semana</label
-          ><select class="nx-form-control" [(ngModel)]="hours.dayOfWeek" name="day">
+        <nx-form-field label="ID do cliente">
+          <input class="nx-form-control" [(ngModel)]="form.customerId" name="customer" required placeholder="uuid" />
+        </nx-form-field>
+        <nx-form-field label="ID do profissional">
+          <input class="nx-form-control" [(ngModel)]="form.professionalId" name="professional" required placeholder="uuid" />
+        </nx-form-field>
+      </div>
+      <div class="nx-form-row">
+        <nx-form-field label="ID do serviço">
+          <input class="nx-form-control" [(ngModel)]="form.serviceId" name="service" required placeholder="uuid" />
+        </nx-form-field>
+        <nx-form-field label="Início (com offset)" [hint]="'A API valida o horário contra ' + timeZoneId() + '.'">
+          <input class="nx-form-control" [(ngModel)]="form.startAt" name="start" required placeholder="2026-09-15T14:00:00-03:00" />
+        </nx-form-field>
+      </div>
+      <nx-form-field label="Observações">
+        <textarea class="nx-form-control" [(ngModel)]="form.notes" name="notes"></textarea>
+      </nx-form-field>
+      <button type="submit" hidden></button>
+    </form>
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="closeForm()">Cancelar</button>
+      <button type="button" nx-button (click)="saveAppointment()">Salvar</button>
+    </div>
+  </nx-modal>
+}
+
+@if (showHours()) {
+  <nx-modal title="Horário recorrente local" (close)="showHours.set(false)">
+    <form (ngSubmit)="saveHours()">
+      <div class="nx-form-row">
+        <nx-form-field label="ID do profissional">
+          <input class="nx-form-control" [(ngModel)]="hours.professionalId" name="hp" required placeholder="uuid" />
+        </nx-form-field>
+        <nx-form-field label="Dia da semana">
+          <select class="nx-form-control" [(ngModel)]="hours.dayOfWeek" name="day">
             <option *ngFor="let d of days" [value]="d.value">{{ d.label }}</option>
           </select>
-        </div>
+        </nx-form-field>
       </div>
       <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">Início</label
-          ><input
-            class="nx-form-control"
-            type="time"
-            [(ngModel)]="hours.startLocal"
-            name="hs"
-            required
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">Fim</label
-          ><input
-            class="nx-form-control"
-            type="time"
-            [(ngModel)]="hours.endLocal"
-            name="he"
-            required
-          />
-        </div>
+        <nx-form-field label="Início">
+          <input class="nx-form-control" type="time" [(ngModel)]="hours.startLocal" name="hs" required />
+        </nx-form-field>
+        <nx-form-field label="Fim">
+          <input class="nx-form-control" type="time" [(ngModel)]="hours.endLocal" name="he" required />
+        </nx-form-field>
       </div>
-      <div class="nx-form-actions">
-        <span></span><button type="submit" class="nx-btn">Salvar disponibilidade</button>
-      </div>
+      <button type="submit" hidden></button>
     </form>
-  }
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="showHours.set(false)">Cancelar</button>
+      <button type="button" nx-button (click)="saveHours()">Salvar disponibilidade</button>
+    </div>
+  </nx-modal>
+}
 
-  @if (showBlock()) {
-    <form class="nx-card" (ngSubmit)="saveBlock()" style="margin-bottom: var(--nx-space-4)">
-      <h2 class="nx-section-title">Bloquear agenda</h2>
+@if (showBlock()) {
+  <nx-modal title="Bloquear agenda" (close)="showBlock.set(false)">
+    <form (ngSubmit)="saveBlock()">
       <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do profissional</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="block.professionalId"
-            name="bp"
-            required
-            placeholder="uuid"
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">Motivo</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="block.reason"
-            name="br"
-            placeholder="Opcional"
-          />
-        </div>
+        <nx-form-field label="ID do profissional">
+          <input class="nx-form-control" [(ngModel)]="block.professionalId" name="bp" required placeholder="uuid" />
+        </nx-form-field>
+        <nx-form-field label="Motivo">
+          <input class="nx-form-control" [(ngModel)]="block.reason" name="br" placeholder="Opcional" />
+        </nx-form-field>
       </div>
       <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">Início (com offset)</label
-          ><input class="nx-form-control" [(ngModel)]="block.startAt" name="bs" required />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">Fim (com offset)</label
-          ><input class="nx-form-control" [(ngModel)]="block.endAt" name="be" required />
-        </div>
+        <nx-form-field label="Início (com offset)">
+          <input class="nx-form-control" [(ngModel)]="block.startAt" name="bs" required />
+        </nx-form-field>
+        <nx-form-field label="Fim (com offset)">
+          <input class="nx-form-control" [(ngModel)]="block.endAt" name="be" required />
+        </nx-form-field>
       </div>
-      <div class="nx-form-actions">
-        <span></span><button type="submit" class="nx-btn">Criar bloqueio</button>
-      </div>
+      <button type="submit" hidden></button>
     </form>
-  }
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="showBlock.set(false)">Cancelar</button>
+      <button type="button" nx-button (click)="saveBlock()">Criar bloqueio</button>
+    </div>
+  </nx-modal>
+}
 
-  <div class="nx-agenda-list" [class.week]="mode() === 'week'">
-    @for (item of visible(); track item.id) {
-      <article class="nx-card nx-appt-card" [class]="'nx-appt-card--' + toneFor(item.status)">
-        <div class="nx-appt-time">
-          <svg class="nx-ico"><use href="#i-clock" /></svg
-          >{{ item.startAtLocal | slice: 11 : 16 }}–{{ item.endAtLocal | slice: 11 : 16 }}
-        </div>
-        <div class="nx-appt-meta">
-          <span class="nx-badge" [class]="badgeClass(item.status)">{{
-            statusLabel(item.status)
-          }}</span>
-          <span class="nx-appt-day">{{ item.startAtLocal | slice: 0 : 10 }}</span>
-        </div>
-        <p class="nx-appt-prof">Profissional {{ item.professionalId | slice: 0 : 8 }}</p>
-        @if (item.notes) {
-          <p class="nx-appt-notes">{{ item.notes }}</p>
-        }
-        <div class="nx-appt-actions">
-          <button class="nx-btn nx-btn--ghost nx-btn--sm" (click)="edit(item)">Editar</button>
-          <button class="nx-btn nx-btn--outline nx-btn--sm" (click)="status(item, 'Confirmed')">
-            Confirmar
-          </button>
-          <button class="nx-btn nx-btn--danger nx-btn--sm" (click)="cancel(item)">Cancelar</button>
-        </div>
-      </article>
-    } @empty {
-      <div class="nx-card" style="grid-column: 1/-1">
-        <div class="nx-empty">
-          <svg class="nx-ico"><use href="#i-calendar" /></svg><b>Nenhum agendamento no período</b
-          ><span>Ajuste a data ou crie um novo agendamento.</span>
-        </div>
-      </div>
-    }
-  </div>
-
-  @if (error()) {
-    <aside class="nx-appt-toast" role="alert">{{ error() }}</aside>
-  }
-</main>
+@if (error()) {
+  <aside class="nx-appt-toast" role="alert">{{ error() }}</aside>
+}

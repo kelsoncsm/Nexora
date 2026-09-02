@@ -1,89 +1,86 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>Usuários e Equipe</h1>
-      <p>Gerencie quem tem acesso a esta empresa.</p>
-    </div>
-  </div>
+<nx-page-header title="Usuários e Equipe" subtitle="Gerencie quem tem acesso a esta empresa." />
 
-  @if (error()) {
-    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
-  }
-  @if (saved()) {
-    <div class="nx-alert nx-alert--success">Papel do membro atualizado.</div>
-  }
+@if (error()) {
+  <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+}
+@if (saved()) {
+  <div class="nx-alert nx-alert--success">Papel do membro atualizado.</div>
+}
 
-  <div class="nx-card">
-    <div class="nx-table-wrap">
-      <table class="nx-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>Papel</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of members(); track m.id) {
-            <tr>
-              <td data-label="Usuário">
-                <span class="nx-table-person"
-                  ><span class="nx-table-avatar">{{ initials(m.email) }}</span
-                  >{{ m.email }}</span
-                >
-              </td>
-              <td data-label="Papel">
-                @if (canManage() && m.isActive) {
-                  <select
-                    class="nx-form-control nx-role-select"
-                    [ngModel]="m.roleId"
-                    (ngModelChange)="assign(m, $event)"
-                    [disabled]="busyId() === m.id"
-                  >
-                    @for (r of roles(); track r.id) {
-                      <option [value]="r.id">{{ r.name }}</option>
-                    }
-                  </select>
-                } @else {
-                  <span class="nx-badge nx-badge--neutral">{{ m.role }}</span>
+<div class="nx-list-toolbar">
+  <nx-search-input placeholder="Buscar por e-mail" (search)="q.set($event)" />
+</div>
+
+<nx-data-table
+  [empty]="!visible().length"
+  emptyIcon="i-users"
+  emptyTitle="Nenhum membro"
+  emptyDescription="Apenas você tem acesso a esta empresa."
+>
+  <table class="nx-table">
+    <thead>
+      <tr>
+        <th>Usuário</th>
+        <th>Papel</th>
+        <th>Status</th>
+        <th><span class="nx-sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (m of visible(); track m.id) {
+        <tr>
+          <td data-label="Usuário">
+            <span class="nx-table-person"><nx-avatar [name]="m.email" />{{ m.email }}</span>
+          </td>
+          <td data-label="Papel">
+            @if (canManage() && m.isActive) {
+              <select
+                class="nx-form-control nx-role-select"
+                [ngModel]="m.roleId"
+                (ngModelChange)="assign(m, $event)"
+                [disabled]="busyId() === m.id"
+              >
+                @for (r of roles(); track r.id) {
+                  <option [value]="r.id">{{ r.name }}</option>
                 }
-              </td>
-              <td data-label="Status">
-                <span
-                  class="nx-badge"
-                  [class]="m.isActive ? 'nx-badge--success' : 'nx-badge--danger'"
-                  >{{ m.isActive ? 'Ativo' : 'Inativo' }}</span
-                >
-              </td>
-              <td class="nx-table-cell-actions">
-                @if (m.isActive) {
-                  <button
-                    class="nx-btn nx-btn--danger nx-btn--sm"
-                    type="button"
-                    (click)="deactivate(m)"
-                  >
-                    Desativar acesso
-                  </button>
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="4" style="padding: 0">
-                <div class="nx-empty">
-                  <svg class="nx-ico"><use href="#i-users" /></svg><b>Nenhum membro</b
-                  ><span>Apenas você tem acesso a esta empresa.</span>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <p class="nx-form-hint" style="margin-top: var(--nx-space-4)">
-      Convite e criação de novos usuários ainda não estão disponíveis nesta versão. Alterar papel e
-      desativar acesso exigem permissão de gestão.
-    </p>
-  </div>
-</main>
+              </select>
+            } @else {
+              <nx-badge>{{ m.role }}</nx-badge>
+            }
+          </td>
+          <td data-label="Status">
+            <nx-badge [tone]="m.isActive ? 'success' : 'danger'">
+              {{ m.isActive ? 'Ativo' : 'Inativo' }}
+            </nx-badge>
+          </td>
+          <td class="nx-table-cell-actions">
+            @if (m.isActive) {
+              <span class="nx-row-actions">
+                <button type="button" class="danger" (click)="confirming.set(m)" aria-label="Desativar acesso">
+                  <svg class="nx-ico"><use href="#i-logout" /></svg>
+                </button>
+              </span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <p footer class="nx-count-hint">
+    Convite e criação de novos usuários ainda não estão disponíveis nesta versão. Alterar papel e
+    desativar acesso exigem permissão de gestão.
+  </p>
+</nx-data-table>
+
+@if (confirming(); as m) {
+  <nx-confirm-dialog
+    title="Desativar acesso?"
+    confirmLabel="Desativar acesso"
+    [danger]="true"
+    (confirm)="deactivate(m)"
+    (cancel)="confirming.set(null)"
+  >
+    <b>{{ m.email }}</b> perderá o acesso a esta empresa imediatamente.
+  </nx-confirm-dialog>
+}

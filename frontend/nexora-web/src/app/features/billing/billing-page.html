@@ -1,35 +1,21 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>Minha assinatura</h1>
-      <p>Gere um checkout e acompanhe suas cobranças.</p>
-    </div>
-  </div>
+<nx-page-header title="Plano e Assinatura" subtitle="Gere um checkout e acompanhe suas cobranças." />
 
-  <div class="nx-grid nx-grid--2">
-    <form class="nx-card" (ngSubmit)="checkout()">
-      <h2 class="nx-section-title">Novo checkout</h2>
-      <div class="nx-form-group">
-        <label class="nx-form-label">Método de pagamento</label>
+<div class="nx-grid nx-grid--2">
+  <nx-card heading="Novo checkout" icon="i-card">
+    <form (ngSubmit)="checkout()">
+      <nx-form-field label="Método de pagamento">
         <select class="nx-form-control" [(ngModel)]="method" name="method">
           <option value="Pix">Pix</option>
           <option value="Boleto">Boleto</option>
           <option value="CreditCard">Cartão de crédito</option>
         </select>
-      </div>
-      <div class="nx-form-group">
-        <label class="nx-form-label">E-mail do pagador</label>
-        <input
-          class="nx-form-control"
-          [(ngModel)]="email"
-          name="email"
-          type="email"
-          required
-          placeholder="pagador@empresa.com.br"
-        />
-      </div>
+      </nx-form-field>
+      <nx-form-field label="E-mail do pagador">
+        <input class="nx-form-control" [(ngModel)]="email" name="email" type="email" required placeholder="pagador@empresa.com.br" />
+      </nx-form-field>
       <div class="nx-form-actions">
-        <span></span><button type="submit" class="nx-btn">Criar checkout</button>
+        <span></span>
+        <button nx-button type="submit">Criar checkout</button>
       </div>
 
       @if (result(); as r) {
@@ -43,38 +29,32 @@
         </div>
       }
     </form>
+  </nx-card>
 
-    <div class="nx-card">
-      <h2 class="nx-section-title">Cobranças</h2>
-      <div class="nx-table-wrap">
-        <table class="nx-table" style="min-width: 0">
-          <thead>
+  <div>
+    <h2 class="nx-section-title">Cobranças</h2>
+    <nx-data-table
+      [empty]="!invoices().length"
+      emptyIcon="i-dollar"
+      emptyTitle="Nenhuma cobrança"
+      emptyDescription="As cobranças aparecerão aqui após o primeiro ciclo."
+    >
+      <table class="nx-table" style="min-width: 0">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (x of invoices(); track x.id) {
             <tr>
-              <th>Status</th>
-              <th>Valor</th>
+              <td data-label="Status"><nx-badge [tone]="badge(x.status)">{{ x.status }}</nx-badge></td>
+              <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
             </tr>
-          </thead>
-          <tbody>
-            @for (x of invoices(); track x.id) {
-              <tr>
-                <td data-label="Status">
-                  <span class="nx-badge" [class]="badge(x.status)">{{ x.status }}</span>
-                </td>
-                <td data-label="Valor">{{ x.amount }} {{ x.currency }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="2" style="padding: 0">
-                  <div class="nx-empty">
-                    <svg class="nx-ico"><use href="#i-dollar" /></svg><b>Nenhuma cobrança</b
-                    ><span>As cobranças aparecerão aqui após o primeiro ciclo.</span>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
+          }
+        </tbody>
+      </table>
+    </nx-data-table>
   </div>
-</main>
+</div>

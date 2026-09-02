@@ -11,10 +11,11 @@ import {
   OnboardingSegment,
   OnboardingService,
 } from './onboarding.service';
+import { NxButton } from '../../shared/ui';
 
 @Component({
   selector: 'app-onboarding-page',
-  imports: [FormsModule, CurrencyPipe],
+  imports: [FormsModule, CurrencyPipe, NxButton],
   templateUrl: './onboarding-page.html',
   styleUrl: './onboarding-page.scss',
 })

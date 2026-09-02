@@ -1,9 +1,12 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { APP_CONFIG } from './core/config/app-config';
+import { NxSidebar } from './shared/ui/shell/nx-sidebar';
+import { NxTopbar } from './shared/ui/shell/nx-topbar';
+import { NxNavGroup, NxShellPlan, NxShellUser } from './shared/ui/shell/nav';
 
 interface ShellPlan {
   planCode: string;
@@ -13,7 +16,7 @@ type Theme = 'light' | 'dark';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, NxSidebar, NxTopbar],
   templateUrl: './app.html',
 })
 export class App {
@@ -24,7 +27,6 @@ export class App {
 
   readonly navOpen = signal(false);
   readonly collapsed = signal(false);
-  readonly userMenuOpen = signal(false);
   readonly theme = signal<Theme>(this.readTheme());
   readonly plan = signal<ShellPlan | null>(null);
   readonly currentUrl = signal(this.router.url);
@@ -92,6 +94,55 @@ export class App {
     return map[status.toLowerCase()] ?? status;
   });
 
+  readonly shellUser = computed<NxShellUser>(() => ({
+    label: this.auth.userLabel(),
+    role: this.roleLabel(),
+    initials: this.initials(),
+  }));
+  readonly shellPlan = computed<NxShellPlan | null>(() => {
+    const p = this.plan();
+    if (!p) return null;
+    return {
+      code: p.planCode,
+      statusLabel: this.planStatusLabel(),
+      active: this.planActive(),
+      tenantLabel: this.tenantLabel(),
+    };
+  });
+  readonly navGroups = computed<NxNavGroup[]>(() => {
+    const groups: NxNavGroup[] = [
+      { label: 'PRINCIPAL', items: [{ label: 'Visão Geral', route: '/', icon: 'i-home', exact: true }] },
+    ];
+    if (this.auth.tenantId()) {
+      const principal = groups[0].items;
+      if (this.has('appointments.read')) principal.push({ label: 'Agenda', route: '/agenda', icon: 'i-calendar' });
+      if (this.has('customers.read')) principal.push({ label: 'Clientes', route: '/clientes', icon: 'i-users' });
+      if (this.has('professionals.read')) principal.push({ label: 'Profissionais', route: '/profissionais', icon: 'i-briefcase' });
+      if (this.has('services.read')) principal.push({ label: 'Serviços', route: '/servicos', icon: 'i-scissors' });
+      if (this.has('reports.read')) principal.push({ label: 'Relatórios', route: '/relatorios', icon: 'i-chart' });
+      groups.push({
+        label: 'GESTÃO',
+        items: [
+          { label: 'Usuários e Equipe', route: '/equipe', icon: 'i-user' },
+          { label: 'Plano e Assinatura', route: '/assinatura', icon: 'i-card' },
+          { label: 'Configurações', route: '/configuracoes', icon: 'i-gear' },
+        ],
+      });
+    }
+    if (this.auth.isPlatformAdmin()) {
+      groups.push({
+        label: 'PLATAFORMA',
+        items: [
+          { label: 'Administração', route: '/admin', icon: 'i-shield', exact: true },
+          { label: 'Assinaturas', route: '/admin/assinaturas', icon: 'i-repeat' },
+          { label: 'Billing', route: '/admin/billing', icon: 'i-dollar' },
+          { label: 'Relatórios da plataforma', route: '/admin/relatorios', icon: 'i-chart' },
+        ],
+      });
+    }
+    return groups;
+  });
+
   constructor() {
     this.applyTheme(this.theme());
     this.router.events
@@ -99,7 +150,6 @@ export class App {
       .subscribe((e) => {
         this.currentUrl.set(e.urlAfterRedirects);
         this.navOpen.set(false);
-        this.userMenuOpen.set(false);
       });
     effect(() => {
       if (this.auth.tenantId()) {
@@ -133,7 +183,6 @@ export class App {
   }
 
   logout() {
-    this.userMenuOpen.set(false);
     this.auth.logout().subscribe(() => void this.router.navigateByUrl('/login'));
   }
 

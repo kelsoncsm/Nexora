@@ -93,21 +93,20 @@
         }
       }
       @if (error()) {
-        <p class="nx-error" role="alert">{{ error() }}</p>
+        <p class="nx-form-error" role="alert">{{ error() }}</p>
       }
       <footer>
         @if (d.currentStep > 1) {
-          <button type="button" class="secondary" [disabled]="busy()" (click)="move(-1)">
-            Voltar
-          </button>
+          <button nx-button variant="secondary" [disabled]="busy()" (click)="move(-1)">Voltar</button>
         }
-        <span></span
-        ><button
-          type="button"
-          [disabled]="busy() || !valid(d)"
+        <span></span>
+        <button
+          nx-button
+          [loading]="busy()"
+          [disabled]="!valid(d)"
           (click)="d.currentStep === 5 ? complete() : move(1)"
         >
-          {{ busy() ? 'Salvando…' : d.currentStep === 5 ? 'Criar minha empresa' : 'Continuar' }}
+          {{ d.currentStep === 5 ? 'Criar minha empresa' : 'Continuar' }}
         </button>
       </footer>
     </section>

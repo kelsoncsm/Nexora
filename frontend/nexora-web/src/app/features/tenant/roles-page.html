@@ -1,129 +1,92 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>Perfis e Papéis</h1>
-      <p>Defina os papéis de acesso da sua equipe.</p>
-    </div>
-    <div class="nx-ph-actions">
-      <button class="nx-btn" type="button" (click)="openCreate()">
-        <svg class="nx-ico"><use href="#i-plus" /></svg>Novo papel
-      </button>
-    </div>
-  </div>
+<nx-page-header title="Perfis e Papéis" subtitle="Defina os papéis de acesso da sua equipe.">
+  <button nx-button icon="i-plus" (click)="openCreate()">Novo papel</button>
+</nx-page-header>
 
-  @if (error()) {
-    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
-  }
-  @if (saved()) {
-    <div class="nx-alert nx-alert--success">Papel salvo.</div>
-  }
+@if (error()) {
+  <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+}
+@if (saved()) {
+  <div class="nx-alert nx-alert--success">Papel salvo.</div>
+}
 
-  @if (editing(); as e) {
-    <form class="nx-card" (ngSubmit)="submit()">
-      <h2 class="nx-section-title">{{ e.id ? 'Editar papel' : 'Novo papel' }}</h2>
+<nx-data-table
+  [empty]="!roles().length"
+  emptyIcon="i-shield"
+  emptyTitle="Nenhum papel"
+  emptyDescription="Crie o primeiro papel personalizado."
+>
+  <table class="nx-table">
+    <thead>
+      <tr>
+        <th>Papel</th>
+        <th>Membros</th>
+        <th>Permissões</th>
+        <th>Tipo</th>
+        <th><span class="nx-sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of roles(); track r.id) {
+        <tr>
+          <td data-label="Papel">
+            <strong>{{ r.name }}</strong>
+            @if (r.description) {
+              <span class="nx-form-hint">{{ r.description }}</span>
+            }
+          </td>
+          <td data-label="Membros">{{ r.memberCount }}</td>
+          <td data-label="Permissões">{{ r.permissions.length }}</td>
+          <td data-label="Tipo">
+            <nx-badge [tone]="r.isSystem ? 'info' : 'neutral'">
+              {{ r.isSystem ? 'Sistema' : 'Personalizado' }}
+            </nx-badge>
+          </td>
+          <td class="nx-table-cell-actions">
+            <span class="nx-row-actions">
+              <a [routerLink]="['/permissoes']" [queryParams]="{ role: r.id }" aria-label="Permissões" title="Permissões">
+                <svg class="nx-ico"><use href="#i-lock" /></svg>
+              </a>
+              @if (!r.isSystem) {
+                <button type="button" (click)="openEdit(r)" aria-label="Editar papel">
+                  <svg class="nx-ico"><use href="#i-edit" /></svg>
+                </button>
+              }
+            </span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <p footer class="nx-count-hint">
+    O papel de sistema (ADMIN) não pode ser renomeado nem excluído. Papéis não podem ser removidos
+    enquanto tiverem membros.
+  </p>
+</nx-data-table>
+
+@if (editing(); as e) {
+  <nx-modal [title]="e.id ? 'Editar papel' : 'Novo papel'" (close)="editing.set(null)">
+    <form (ngSubmit)="submit()">
       <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label" for="rname">Nome</label>
-          <input
-            id="rname"
-            class="nx-form-control"
-            [(ngModel)]="e.name"
-            name="name"
-            maxlength="100"
-            required
-          />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label" for="rdesc">Descrição</label>
-          <input
-            id="rdesc"
-            class="nx-form-control"
-            [(ngModel)]="e.description"
-            name="description"
-            maxlength="300"
-          />
-        </div>
-      </div>
-      <div class="nx-form-actions">
-        <button class="nx-btn nx-btn--secondary" type="button" (click)="editing.set(null)">
-          Cancelar
-        </button>
-        <button class="nx-btn" type="submit" [disabled]="busy() || !e.name.trim()">
-          {{ busy() ? 'Salvando…' : 'Salvar' }}
-        </button>
+        <nx-form-field label="Nome" for="rname">
+          <input id="rname" class="nx-form-control" [(ngModel)]="e.name" name="name" maxlength="100" required />
+        </nx-form-field>
+        <nx-form-field label="Descrição" for="rdesc">
+          <input id="rdesc" class="nx-form-control" [(ngModel)]="e.description" name="description" maxlength="300" />
+        </nx-form-field>
       </div>
       @if (!e.id) {
         <p class="nx-form-hint">
           As permissões do papel são definidas em <b>Permissões</b> após a criação.
         </p>
       }
+      <button type="submit" hidden></button>
     </form>
-  }
-
-  <div class="nx-card">
-    <div class="nx-table-wrap">
-      <table class="nx-table">
-        <thead>
-          <tr>
-            <th>Papel</th>
-            <th>Membros</th>
-            <th>Permissões</th>
-            <th>Tipo</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of roles(); track r.id) {
-            <tr>
-              <td data-label="Papel">
-                <strong>{{ r.name }}</strong>
-                @if (r.description) {
-                  <span class="nx-form-hint">{{ r.description }}</span>
-                }
-              </td>
-              <td data-label="Membros">{{ r.memberCount }}</td>
-              <td data-label="Permissões">{{ r.permissions.length }}</td>
-              <td data-label="Tipo">
-                <span
-                  class="nx-badge"
-                  [class]="r.isSystem ? 'nx-badge--info' : 'nx-badge--neutral'"
-                  >{{ r.isSystem ? 'Sistema' : 'Personalizado' }}</span
-                >
-              </td>
-              <td class="nx-table-cell-actions">
-                <a
-                  class="nx-btn nx-btn--ghost nx-btn--sm"
-                  [routerLink]="['/permissoes']"
-                  [queryParams]="{ role: r.id }"
-                  >Permissões</a
-                >
-                @if (!r.isSystem) {
-                  <button
-                    class="nx-btn nx-btn--ghost nx-btn--sm"
-                    type="button"
-                    (click)="openEdit(r)"
-                  >
-                    Editar
-                  </button>
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5" style="padding: 0">
-                <div class="nx-empty">
-                  <svg class="nx-ico"><use href="#i-shield" /></svg><b>Nenhum papel</b
-                  ><span>Crie o primeiro papel personalizado.</span>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="editing.set(null)">Cancelar</button>
+      <button type="button" nx-button [loading]="busy()" [disabled]="!e.name.trim()" (click)="submit()">
+        Salvar
+      </button>
     </div>
-    <p class="nx-form-hint" style="margin-top: var(--nx-space-4)">
-      O papel de sistema (ADMIN) não pode ser renomeado nem excluído. Papéis não podem ser removidos
-      enquanto tiverem membros.
-    </p>
-  </div>
-</main>
+  </nx-modal>
+}

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { NxBadge, NxButton, NxCard, NxDataTable, NxFormField, NxPageHeader } from '../../shared/ui';
 
 interface Invoice {
   id: string;
@@ -21,7 +22,7 @@ interface Checkout {
 
 @Component({
   selector: 'app-billing-page',
-  imports: [FormsModule],
+  imports: [FormsModule, NxPageHeader, NxCard, NxFormField, NxButton, NxDataTable, NxBadge],
   templateUrl: './billing-page.html',
   styleUrl: './billing-page.scss',
 })
@@ -35,13 +36,13 @@ export class BillingPage {
   constructor() {
     this.load();
   }
-  badge(status: string) {
+  badge(status: string): 'success' | 'danger' | 'warning' {
     const s = (status || '').toLowerCase();
     return s.includes('paid') || s.includes('approved')
-      ? 'nx-badge--success'
+      ? 'success'
       : s.includes('fail') || s.includes('cancel')
-        ? 'nx-badge--danger'
-        : 'nx-badge--warning';
+        ? 'danger'
+        : 'warning';
   }
   load() {
     this.http

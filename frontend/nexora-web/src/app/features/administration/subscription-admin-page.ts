@@ -3,10 +3,21 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AdministrationService, Subscription } from './administration.service';
+import { NxBadge, NxButton, NxCard, NxEmptyState, NxFormField, NxPageHeader } from '../../shared/ui';
 
 @Component({
   selector: 'app-subscription-admin-page',
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [
+    FormsModule,
+    DatePipe,
+    RouterLink,
+    NxPageHeader,
+    NxCard,
+    NxFormField,
+    NxButton,
+    NxBadge,
+    NxEmptyState,
+  ],
   templateUrl: './subscription-admin-page.html',
   styleUrl: './subscription-admin-page.scss',
 })
@@ -20,15 +31,15 @@ export class SubscriptionAdminPage {
   constructor() {
     this.load();
   }
-  badge(status: string) {
+  badge(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
     const s = (status || '').toLowerCase();
     return s === 'active' || s === 'trialing'
-      ? 'nx-badge--success'
+      ? 'success'
       : s === 'pastdue'
-        ? 'nx-badge--warning'
+        ? 'warning'
         : s === 'canceled' || s === 'expired'
-          ? 'nx-badge--danger'
-          : 'nx-badge--neutral';
+          ? 'danger'
+          : 'neutral';
   }
   load() {
     this.api

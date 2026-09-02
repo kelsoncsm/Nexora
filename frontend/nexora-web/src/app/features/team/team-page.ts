@@ -4,6 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { APP_CONFIG } from '../../core/config/app-config';
 import { AuthService } from '../../core/auth/auth.service';
 import { TenantAdminService, TenantRole } from '../tenant/tenant-admin.service';
+import {
+  NxAvatar,
+  NxBadge,
+  NxConfirmDialog,
+  NxDataTable,
+  NxPageHeader,
+  NxSearchInput,
+} from '../../shared/ui';
 
 interface TenantMember {
   id: string;
@@ -16,7 +24,15 @@ interface TenantMember {
 
 @Component({
   selector: 'app-team-page',
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    NxPageHeader,
+    NxSearchInput,
+    NxDataTable,
+    NxAvatar,
+    NxBadge,
+    NxConfirmDialog,
+  ],
   templateUrl: './team-page.html',
   styleUrl: './team-page.scss',
 })
@@ -30,16 +46,16 @@ export class TeamPage {
   error = signal('');
   saved = signal(false);
   busyId = signal('');
+  q = signal('');
+  confirming = signal<TenantMember | null>(null);
   readonly canManage = computed(() => this.auth.permissions().includes('tenant.manage'));
+  readonly visible = computed(() => {
+    const term = this.q().trim().toLowerCase();
+    const list = this.members();
+    return term ? list.filter((m) => m.email.toLowerCase().includes(term)) : list;
+  });
   constructor() {
     this.load();
-  }
-  initials(email: string) {
-    const n = (email || '')
-      .split('@')[0]
-      .split(/[.\s_-]+/)
-      .filter(Boolean);
-    return ((n[0]?.[0] ?? '?') + (n[1]?.[0] ?? '')).toUpperCase();
   }
   load() {
     this.http.get<TenantMember[]>(`${this.base}/tenant/members`).subscribe({
@@ -83,6 +99,7 @@ export class TeamPage {
     });
   }
   deactivate(m: TenantMember) {
+    this.confirming.set(null);
     this.http.patch<void>(`${this.base}/tenant/members/${m.id}/deactivate`, {}).subscribe({
       next: () => this.load(),
       error: (e) =>

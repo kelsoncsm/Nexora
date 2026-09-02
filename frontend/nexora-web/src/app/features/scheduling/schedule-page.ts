@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { APP_CONFIG } from '../../core/config/app-config';
 import { CommonModule } from '@angular/common';
+import { NxBadge, NxButton, NxFormField, NxModal, NxPageHeader } from '../../shared/ui';
 
 interface Appointment {
   id: string;
@@ -20,7 +21,7 @@ interface ScheduleContext {
 
 @Component({
   selector: 'app-schedule-page',
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, NxPageHeader, NxButton, NxBadge, NxModal, NxFormField],
   templateUrl: './schedule-page.html',
   styleUrl: './schedule-page.scss',
 })
@@ -72,15 +73,15 @@ export class SchedulePage {
           ? 'orange'
           : 'purple';
   }
-  badgeClass(status: string) {
+  badgeTone(status: string): 'success' | 'danger' | 'warning' | 'info' {
     const s = status.toLowerCase();
     return s === 'completed' || s === 'confirmed'
-      ? 'nx-badge--success'
+      ? 'success'
       : s === 'cancelled' || s === 'noshow'
-        ? 'nx-badge--danger'
+        ? 'danger'
         : s === 'inprogress'
-          ? 'nx-badge--warning'
-          : 'nx-badge--info';
+          ? 'warning'
+          : 'info';
   }
   statusLabel(status: string) {
     const m: Record<string, string> = {

@@ -1,188 +1,137 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>{{ kind === 'professionals' ? 'Profissionais' : 'Serviços' }}</h1>
-      <p>
-        {{
-          kind === 'professionals'
-            ? 'Equipe que realiza os atendimentos.'
-            : 'Catálogo de serviços oferecidos.'
-        }}
-      </p>
-    </div>
-    <div class="nx-ph-actions">
-      <button class="nx-btn" (click)="startNew()">
-        <svg class="nx-ico"><use href="#i-plus" /></svg
-        >{{ kind === 'professionals' ? 'Novo profissional' : 'Novo serviço' }}
-      </button>
-    </div>
-  </div>
+<nx-page-header [title]="title" [subtitle]="subtitle">
+  @if (isPros) {
+    <button nx-button [variant]="'secondary'" icon="i-link" (click)="linkOpen.set(true)">
+      Associar serviço
+    </button>
+  }
+  <button nx-button icon="i-plus" (click)="startNew()">Novo {{ noun }}</button>
+</nx-page-header>
 
-  @if (editing()) {
-    <form class="nx-card" (ngSubmit)="save()" style="margin-bottom: var(--nx-space-4)">
-      <h2 class="nx-section-title">
-        {{ form.id ? 'Editar' : 'Novo' }}
-        {{ kind === 'professionals' ? 'profissional' : 'serviço' }}
-      </h2>
-      <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">Nome</label
-          ><input
-            class="nx-form-control"
-            [(ngModel)]="form.name"
-            name="name"
-            required
-            placeholder="Nome"
-          />
+<div class="nx-list-toolbar">
+  <nx-search-input [placeholder]="'Buscar ' + noun" (search)="q.set($event)" />
+</div>
+
+<nx-data-table
+  [loading]="loading()"
+  [empty]="!visible().length"
+  [emptyIcon]="isPros ? 'i-briefcase' : 'i-scissors'"
+  emptyTitle="Nada cadastrado ainda"
+  [emptyDescription]="'Adicione o primeiro ' + noun + ' para começar.'"
+>
+  <button emptyAction nx-button size="sm" (click)="startNew()">Novo {{ noun }}</button>
+
+  <table class="nx-table">
+    <thead>
+      <tr>
+        <th>{{ isPros ? 'Profissional' : 'Serviço' }}</th>
+        <th>{{ isPros ? 'Contato' : 'Duração / preço' }}</th>
+        <th><span class="nx-sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of visible(); track item.id) {
+        <tr>
+          <td [attr.data-label]="isPros ? 'Profissional' : 'Serviço'">
+            <span class="nx-table-person"><nx-avatar [name]="item.name" />{{ item.name }}</span>
+          </td>
+          <td data-label="Detalhes">
+            {{
+              kind === 'services'
+                ? item.durationMinutes + ' min · R$ ' + item.price
+                : item.email || item.phone || '—'
+            }}
+          </td>
+          <td class="nx-table-cell-actions">
+            <span class="nx-row-actions">
+              <button type="button" (click)="edit(item)" aria-label="Editar">
+                <svg class="nx-ico"><use href="#i-edit" /></svg>
+              </button>
+              <button type="button" class="danger" (click)="confirming.set(item)" aria-label="Excluir">
+                <svg class="nx-ico"><use href="#i-trash" /></svg>
+              </button>
+            </span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</nx-data-table>
+
+@if (modalOpen()) {
+  <nx-modal [title]="(form.id ? 'Editar ' : 'Novo ') + noun" (close)="modalOpen.set(false)">
+    <form (ngSubmit)="save()">
+      <nx-form-field label="Nome">
+        <input class="nx-form-control" [(ngModel)]="form.name" name="name" required placeholder="Nome" />
+      </nx-form-field>
+      @if (isPros) {
+        <div class="nx-form-row">
+          <nx-form-field label="E-mail">
+            <input class="nx-form-control" [(ngModel)]="form.email" name="email" placeholder="email@exemplo.com" />
+          </nx-form-field>
+          <nx-form-field label="Telefone">
+            <input class="nx-form-control" [(ngModel)]="form.phone" name="phone" placeholder="(00) 00000-0000" />
+          </nx-form-field>
         </div>
-        @if (kind === 'professionals') {
-          <div class="nx-form-group">
-            <label class="nx-form-label">E-mail</label
-            ><input
-              class="nx-form-control"
-              [(ngModel)]="form.email"
-              name="email"
-              placeholder="email@exemplo.com"
-            />
-          </div>
-        } @else {
-          <div class="nx-form-group">
-            <label class="nx-form-label">Duração (min)</label
-            ><input
-              class="nx-form-control"
-              type="number"
-              [(ngModel)]="form.durationMinutes"
-              name="duration"
-              min="1"
-              placeholder="30"
-            />
-          </div>
-        }
-      </div>
-      <div class="nx-form-row">
-        @if (kind === 'professionals') {
-          <div class="nx-form-group">
-            <label class="nx-form-label">Telefone</label
-            ><input
-              class="nx-form-control"
-              [(ngModel)]="form.phone"
-              name="phone"
-              placeholder="(00) 00000-0000"
-            />
-          </div>
-          <div></div>
-        } @else {
-          <div class="nx-form-group">
-            <label class="nx-form-label">Preço</label
-            ><input
-              class="nx-form-control"
-              type="number"
-              [(ngModel)]="form.price"
-              name="price"
-              min="0"
-              step=".01"
-              placeholder="0,00"
-            />
-          </div>
-          <div class="nx-form-group">
-            <label class="nx-form-label">Descrição</label
-            ><input
-              class="nx-form-control"
-              [(ngModel)]="form.description"
-              name="description"
-              placeholder="Descrição breve"
-            />
-          </div>
-        }
-      </div>
-      <div class="nx-form-actions">
-        <button type="button" class="nx-btn nx-btn--secondary" (click)="editing.set(false)">
-          Cancelar
-        </button>
-        <button type="submit" class="nx-btn">Salvar</button>
-      </div>
+      } @else {
+        <div class="nx-form-row">
+          <nx-form-field label="Duração (min)">
+            <input class="nx-form-control" type="number" [(ngModel)]="form.durationMinutes" name="duration" min="1" placeholder="30" />
+          </nx-form-field>
+          <nx-form-field label="Preço (R$)">
+            <input class="nx-form-control" type="number" [(ngModel)]="form.price" name="price" min="0" step=".01" placeholder="0,00" />
+          </nx-form-field>
+        </div>
+        <nx-form-field label="Descrição">
+          <input class="nx-form-control" [(ngModel)]="form.description" name="description" placeholder="Descrição breve" />
+        </nx-form-field>
+      }
+      <button type="submit" hidden></button>
     </form>
-  }
-
-  <div class="nx-card">
-    <div class="nx-table-wrap">
-      <table class="nx-table">
-        <thead>
-          <tr>
-            <th>{{ kind === 'professionals' ? 'Profissional' : 'Serviço' }}</th>
-            <th>{{ kind === 'professionals' ? 'Contato' : 'Duração / preço' }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of items(); track item.id) {
-            <tr>
-              <td [attr.data-label]="kind === 'professionals' ? 'Profissional' : 'Serviço'">
-                <span class="nx-table-person"
-                  ><span class="nx-table-avatar">{{ initials(item.name) }}</span
-                  >{{ item.name }}</span
-                >
-              </td>
-              <td data-label="Detalhes">
-                {{
-                  kind === 'services'
-                    ? item.durationMinutes + ' min · R$ ' + item.price
-                    : item.email || item.phone || '—'
-                }}
-              </td>
-              <td class="nx-table-cell-actions">
-                <div class="nx-table-actions">
-                  <button
-                    class="nx-btn nx-btn--ghost nx-btn--sm"
-                    type="button"
-                    (click)="edit(item)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="nx-btn nx-btn--danger nx-btn--sm"
-                    type="button"
-                    (click)="remove(item.id)"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="3" style="padding: 0">
-                <div class="nx-empty">
-                  <svg class="nx-ico">
-                    <use
-                      [attr.href]="kind === 'professionals' ? '#i-briefcase' : '#i-scissors'"
-                    /></svg
-                  ><b>Nada cadastrado ainda</b><span>Adicione o primeiro item para começar.</span>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  @if (kind === 'professionals') {
-    <div class="nx-card--flat" style="margin-top: var(--nx-space-4)">
-      <h2 class="nx-section-title">Associar serviço a um profissional</h2>
-      <div class="nx-form-row">
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do profissional</label
-          ><input class="nx-form-control" [(ngModel)]="professionalId" placeholder="uuid" />
-        </div>
-        <div class="nx-form-group">
-          <label class="nx-form-label">ID do serviço</label
-          ><input class="nx-form-control" [(ngModel)]="serviceId" placeholder="uuid" />
-        </div>
-      </div>
-      <button class="nx-btn nx-btn--outline" type="button" (click)="link()">
-        <svg class="nx-ico"><use href="#i-plus" /></svg>Associar
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="modalOpen.set(false)">Cancelar</button>
+      <button type="button" nx-button [loading]="saving()" [disabled]="!form.name?.trim()" (click)="save()">
+        Salvar
       </button>
     </div>
-  }
-</main>
+  </nx-modal>
+}
+
+@if (linkOpen()) {
+  <nx-modal title="Associar serviço a profissional" (close)="linkOpen.set(false)">
+    <form (ngSubmit)="link()">
+      <nx-form-field label="Profissional">
+        <select class="nx-form-control" [(ngModel)]="professionalId" name="pro" required>
+          <option value="" disabled>Selecione</option>
+          @for (p of items(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </nx-form-field>
+      <nx-form-field label="Serviço">
+        <select class="nx-form-control" [(ngModel)]="serviceId" name="svc" required>
+          <option value="" disabled>Selecione</option>
+          @for (s of services(); track s.id) {
+            <option [value]="s.id">{{ s.name }}</option>
+          }
+        </select>
+      </nx-form-field>
+      <button type="submit" hidden></button>
+    </form>
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="linkOpen.set(false)">Cancelar</button>
+      <button type="button" nx-button [disabled]="!professionalId || !serviceId" (click)="link()">Associar</button>
+    </div>
+  </nx-modal>
+}
+
+@if (confirming(); as x) {
+  <nx-confirm-dialog
+    [title]="'Excluir ' + noun + '?'"
+    confirmLabel="Excluir"
+    [danger]="true"
+    (confirm)="remove()"
+    (cancel)="confirming.set(null)"
+  >
+    Tem certeza que deseja excluir <b>{{ x.name }}</b>? Esta ação não pode ser desfeita.
+  </nx-confirm-dialog>
+}

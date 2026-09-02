@@ -1,159 +1,70 @@
-<main>
-  <div class="nx-page-header">
-    <div>
-      <h1>{{ platform ? 'Relatórios da plataforma' : 'Relatórios' }}</h1>
-      <p>
-        {{
-          platform
-            ? 'Indicadores consolidados de todos os tenants.'
-            : 'Acompanhe a operação da sua empresa no período.'
-        }}
-      </p>
-    </div>
-  </div>
+<nx-page-header
+  [title]="platform ? 'Relatórios da plataforma' : 'Relatórios'"
+  [subtitle]="platform ? 'Indicadores consolidados de todos os tenants.' : 'Acompanhe a operação da sua empresa no período.'"
+/>
 
-  <form class="nx-card--flat nx-report-filter" (ngSubmit)="load()">
-    <div class="nx-form-group">
-      <label class="nx-form-label">De</label
-      ><input class="nx-form-control" type="date" name="from" [(ngModel)]="from" />
-    </div>
-    <div class="nx-form-group">
-      <label class="nx-form-label">Até</label
-      ><input class="nx-form-control" type="date" name="to" [(ngModel)]="to" />
-    </div>
-    <button class="nx-btn" type="submit">Atualizar</button>
+<nx-card [flat]="true">
+  <form class="nx-report-filter" (ngSubmit)="load()">
+    <nx-form-field label="De">
+      <input class="nx-form-control" type="date" name="from" [(ngModel)]="from" />
+    </nx-form-field>
+    <nx-form-field label="Até">
+      <input class="nx-form-control" type="date" name="to" [(ngModel)]="to" />
+    </nx-form-field>
+    <button nx-button type="submit">Atualizar</button>
   </form>
+</nx-card>
 
-  @if (error()) {
-    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
-  }
+@if (error()) {
+  <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+}
 
-  @if (data(); as report) {
-    <section class="nx-grid nx-grid--kpi">
-      @if (platform) {
-        <article class="nx-kpi nx-kpi--purple">
-          <div>
-            <div class="nx-kpi-head">Tenants</div>
-            <div class="nx-kpi-value">{{ report.totalTenants ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-building" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--green">
-          <div>
-            <div class="nx-kpi-head">Tenants ativos</div>
-            <div class="nx-kpi-value">{{ report.activeTenants ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-check" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--blue">
-          <div>
-            <div class="nx-kpi-head">Trials</div>
-            <div class="nx-kpi-value">{{ report.trialSubscriptions ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-clock" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--orange">
-          <div>
-            <div class="nx-kpi-head">Past due</div>
-            <div class="nx-kpi-value">{{ report.pastDueSubscriptions ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-dollar" /></svg
-          ></span>
-        </article>
-        @if (report.paidRevenue !== undefined && report.currency) {
-          <article class="nx-kpi nx-kpi--green">
-            <div>
-              <div class="nx-kpi-head">Receita SaaS paga</div>
-              <div class="nx-kpi-value">
-                {{
-                  report.paidRevenue.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: report.currency,
-                  })
-                }}
-              </div>
-            </div>
-            <span class="nx-kpi-ico"
-              ><svg class="nx-ico"><use href="#i-dollar" /></svg
-            ></span>
-          </article>
-        }
-      } @else {
-        <article class="nx-kpi nx-kpi--purple">
-          <div>
-            <div class="nx-kpi-head">Clientes</div>
-            <div class="nx-kpi-value">{{ report.customers ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-users" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--blue">
-          <div>
-            <div class="nx-kpi-head">Agendamentos</div>
-            <div class="nx-kpi-value">{{ report.appointments?.total ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-calendar" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--green">
-          <div>
-            <div class="nx-kpi-head">Concluídos</div>
-            <div class="nx-kpi-value">{{ report.appointments?.completed ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-check" /></svg
-          ></span>
-        </article>
-        <article class="nx-kpi nx-kpi--orange">
-          <div>
-            <div class="nx-kpi-head">No-show</div>
-            <div class="nx-kpi-value">{{ report.appointments?.noShow ?? 0 }}</div>
-          </div>
-          <span class="nx-kpi-ico"
-            ><svg class="nx-ico"><use href="#i-bell" /></svg
-          ></span>
-        </article>
+@if (data(); as report) {
+  <section class="nx-grid nx-grid--kpi">
+    @if (platform) {
+      <nx-stat-card label="Tenants" [value]="report.totalTenants ?? 0" icon="i-building" tone="purple" />
+      <nx-stat-card label="Tenants ativos" [value]="report.activeTenants ?? 0" icon="i-check" tone="green" />
+      <nx-stat-card label="Trials" [value]="report.trialSubscriptions ?? 0" icon="i-clock" tone="blue" />
+      <nx-stat-card label="Past due" [value]="report.pastDueSubscriptions ?? 0" icon="i-dollar" tone="orange" />
+      @if (report.paidRevenue !== undefined && report.currency) {
+        <nx-stat-card
+          label="Receita SaaS paga"
+          [value]="report.paidRevenue.toLocaleString('pt-BR', { style: 'currency', currency: report.currency })"
+          icon="i-dollar"
+          tone="green"
+        />
       }
-    </section>
-
-    @if (report.productivity?.length) {
-      <section class="nx-card" style="margin-top: var(--nx-space-5)">
-        <h2 class="nx-section-title">Produtividade</h2>
-        <div class="nx-table-wrap">
-          <table class="nx-table">
-            <thead>
-              <tr>
-                <th>Profissional</th>
-                <th>Atendimentos concluídos</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of report.productivity; track item.professionalName) {
-                <tr>
-                  <td data-label="Profissional">
-                    <span class="nx-table-person"
-                      ><span class="nx-table-avatar">{{ initials(item.professionalName) }}</span
-                      >{{ item.professionalName }}</span
-                    >
-                  </td>
-                  <td data-label="Concluídos">
-                    <b>{{ item.completedAppointments }}</b>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+    } @else {
+      <nx-stat-card label="Clientes" [value]="report.customers ?? 0" icon="i-users" tone="purple" />
+      <nx-stat-card label="Agendamentos" [value]="report.appointments?.total ?? 0" icon="i-calendar" tone="blue" />
+      <nx-stat-card label="Concluídos" [value]="report.appointments?.completed ?? 0" icon="i-check" tone="green" />
+      <nx-stat-card label="No-show" [value]="report.appointments?.noShow ?? 0" icon="i-bell" tone="orange" />
     }
+  </section>
+
+  @if (report.productivity?.length) {
+    <section style="margin-top: var(--nx-space-5)">
+      <h2 class="nx-section-title">Produtividade</h2>
+      <nx-data-table>
+        <table class="nx-table">
+          <thead>
+            <tr>
+              <th>Profissional</th>
+              <th>Atendimentos concluídos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of report.productivity; track item.professionalName) {
+              <tr>
+                <td data-label="Profissional">
+                  <span class="nx-table-person"><nx-avatar [name]="item.professionalName" />{{ item.professionalName }}</span>
+                </td>
+                <td data-label="Concluídos"><b>{{ item.completedAppointments }}</b></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </nx-data-table>
+    </section>
   }
-</main>
+}

@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { NxAvatar, NxButton, NxCard, NxDataTable, NxFormField, NxPageHeader, NxStatCard } from '../../shared/ui';
 
 interface ReportData {
   totalTenants?: number;
@@ -19,7 +20,7 @@ interface ReportData {
 
 @Component({
   selector: 'app-reports-page',
-  imports: [FormsModule],
+  imports: [FormsModule, NxPageHeader, NxCard, NxFormField, NxButton, NxStatCard, NxDataTable, NxAvatar],
   templateUrl: './reports-page.html',
   styleUrl: './reports-page.scss',
 })
@@ -33,10 +34,6 @@ export class ReportsPage {
   error = signal('');
   constructor() {
     this.load();
-  }
-  initials(name: string) {
-    const p = (name || '').trim().split(/\s+/);
-    return ((p[0]?.[0] ?? '?') + (p[1]?.[0] ?? '')).toUpperCase();
   }
   load() {
     const path = this.platform ? '/admin/reports/overview' : '/reports/overview';

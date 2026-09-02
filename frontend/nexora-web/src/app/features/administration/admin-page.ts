@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
+import { NxButton, NxDataTable, NxPageHeader, NxStatCard } from '../../shared/ui';
 import {
   AdministrationService,
   AdminDashboard,
@@ -16,7 +17,7 @@ type Section = 'dashboard' | 'tenants' | 'users' | 'segments' | 'features' | 'pl
 
 @Component({
   selector: 'app-admin-page',
-  imports: [RouterLink],
+  imports: [RouterLink, NxPageHeader, NxStatCard, NxDataTable, NxButton],
   templateUrl: './admin-page.html',
   styleUrl: './admin-page.scss',
 })

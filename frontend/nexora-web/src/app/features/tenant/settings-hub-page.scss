@@ -1,24 +1,37 @@
 main {
   display: block;
 }
+.nx-hub-section-title {
+  font-size: var(--nx-fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--nx-text-light);
+  margin-bottom: var(--nx-space-3);
+}
 .nx-hub-grid {
   display: grid;
   gap: var(--nx-space-4);
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }
 .nx-hub-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   text-decoration: none;
   color: inherit;
+  border: 1px solid var(--nx-border);
+  box-shadow: var(--nx-shadow-sm);
   transition:
     box-shadow var(--nx-transition),
-    transform var(--nx-transition);
+    transform var(--nx-transition),
+    border-color var(--nx-transition);
 }
 .nx-hub-card:hover {
   box-shadow: var(--nx-shadow-lg);
   transform: translateY(-2px);
+  border-color: var(--nx-primary-light);
 }
 .nx-hub-card strong {
   font-size: var(--nx-fs-md);
@@ -27,8 +40,8 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--nx-radius-md);
   background: var(--nx-primary-light);
   color: var(--nx-primary);
@@ -37,4 +50,17 @@ main {
 .nx-hub-icon .nx-ico {
   width: 20px;
   height: 20px;
+}
+.nx-hub-go {
+  position: absolute;
+  top: var(--nx-space-5);
+  right: var(--nx-space-5);
+  color: var(--nx-text-light);
+}
+.nx-hub-go .nx-ico {
+  width: 16px;
+  height: 16px;
+}
+.nx-hub-card:hover .nx-hub-go {
+  color: var(--nx-primary);
 }
