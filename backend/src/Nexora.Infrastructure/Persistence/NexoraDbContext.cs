@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Nexora.Domain.Identity;
 using Nexora.Domain.Tenancy;
 using Nexora.Domain.Administration;
@@ -12,9 +13,16 @@ using Nexora.Domain.Onboarding;
 
 namespace Nexora.Infrastructure.Persistence;
 
-public sealed class NexoraDbContext(DbContextOptions<NexoraDbContext> options)
-    : DbContext(options)
+public sealed class NexoraDbContext : DbContext
 {
+    /// <summary>PostgreSQL schema this context is bound to (ADR-0022). See <see cref="NexoraPersistenceOptions"/>.</summary>
+    public string Schema { get; }
+
+    public NexoraDbContext(DbContextOptions<NexoraDbContext> options,
+                           IOptions<NexoraPersistenceOptions>? persistence = null)
+        : base(options)
+        => Schema = persistence?.Value.Schema ?? DatabaseSchemas.Application;
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
@@ -41,6 +49,7 @@ public sealed class NexoraDbContext(DbContextOptions<NexoraDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(NexoraDbContext).Assembly);
     }
 }

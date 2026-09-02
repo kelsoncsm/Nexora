@@ -1,24 +1,21 @@
 namespace Nexora.Infrastructure.Persistence;
 
 /// <summary>
-/// PostgreSQL schema per bounded context (ADR-0020). Every <c>IEntityTypeConfiguration</c> pins its
-/// tables to one of these; there is no <c>HasDefaultSchema</c>. <c>__EFMigrationsHistory</c> stays in
-/// <c>public</c>. Adding a schema here is an architectural decision, not configuration.
+/// The Nexora application owns a single PostgreSQL schema inside the shared <c>saas_dev</c>
+/// database (ADR-0022, supersedes ADR-0020). Bounded contexts stay a logical concern of the
+/// codebase — they no longer map to physical schemas. The default schema is
+/// <see cref="Application"/>; the integration-test host overrides it to <see cref="IntegrationTests"/>
+/// so its migrations and data never touch the application schema. The <c>dentalflow</c> schema in
+/// the same database belongs to another system and must never be touched.
 /// </summary>
 public static class DatabaseSchemas
 {
-    public const string Identity = "identity";
-    public const string Tenancy = "tenancy";
-    public const string Platform = "platform";
-    public const string Plans = "plans";
-    public const string Billing = "billing";
-    public const string Customers = "customers";
-    public const string Catalog = "catalog";
-    public const string Scheduling = "scheduling";
-    public const string Notifications = "notifications";
-    public const string Onboarding = "onboarding";
+    /// <summary>Schema used by the running application (dev, staging, production).</summary>
+    public const string Application = "nexora";
 
-    /// <summary>Every context schema, in a stable order. Used by the schema-move migration and its tests.</summary>
-    public static readonly string[] All =
-        [Identity, Tenancy, Platform, Plans, Billing, Customers, Catalog, Scheduling, Notifications, Onboarding];
+    /// <summary>Schema the integration-test suite is confined to. Reset per run; never the app schema.</summary>
+    public const string IntegrationTests = "nexoratest";
+
+    /// <summary>EF Core migrations-history table name; lives in whichever schema is active.</summary>
+    public const string MigrationsHistoryTable = "__EFMigrationsHistory";
 }

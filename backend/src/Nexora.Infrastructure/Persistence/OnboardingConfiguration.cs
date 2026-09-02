@@ -8,7 +8,7 @@ public sealed class OnboardingDraftConfiguration : IEntityTypeConfiguration<Onbo
 {
     public void Configure(EntityTypeBuilder<OnboardingDraft> builder)
     {
-        builder.ToTable("onboarding_drafts", DatabaseSchemas.Onboarding); builder.HasKey(x => x.Id);
+        builder.ToTable("onboarding_drafts"); builder.HasKey(x => x.Id);
         builder.Property(x => x.CompanyName).HasMaxLength(200); builder.Property(x => x.CompanySlug).HasMaxLength(100);
         builder.Property(x => x.TimeZoneId).HasMaxLength(100); builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(x => x.BillingInterval).HasConversion<string>().HasMaxLength(20);

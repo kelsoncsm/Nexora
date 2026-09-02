@@ -8,7 +8,7 @@ public sealed class EmailOutboxMessageConfiguration : IEntityTypeConfiguration<E
 {
     public void Configure(EntityTypeBuilder<EmailOutboxMessage> builder)
     {
-        builder.ToTable("email_outbox_messages", DatabaseSchemas.Notifications); builder.HasKey(x => x.Id);
+        builder.ToTable("email_outbox_messages"); builder.HasKey(x => x.Id);
         builder.Property(x => x.Type).HasMaxLength(100).IsRequired(); builder.Property(x => x.Recipient).HasMaxLength(320).IsRequired();
         builder.Property(x => x.TemplateKey).HasMaxLength(100).IsRequired(); builder.Property(x => x.Payload).HasColumnType("jsonb").IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired(); builder.Property(x => x.LastError).HasMaxLength(1000);

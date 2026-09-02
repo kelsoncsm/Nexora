@@ -38,8 +38,16 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException(
                 "ConnectionStrings:NexoraDatabase must be configured.");
 
+        // ADR-0022: the app owns one schema in the shared saas_dev database. Overridable only so the
+        // integration-test host can confine itself to nexoratest.
+        var schema = configuration["Database:Schema"] ?? DatabaseSchemas.Application;
+        services.Configure<NexoraPersistenceOptions>(o => o.Schema = schema);
+        services.AddSingleton<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory,
+            SchemaAwareModelCacheKeyFactory>();
+
         services.AddDbContext<NexoraDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, npgsql =>
+                npgsql.MigrationsHistoryTable(DatabaseSchemas.MigrationsHistoryTable, schema)));
 
         services.AddOptions<NexoraIdentityOptions>()
             .Bind(configuration.GetSection(NexoraIdentityOptions.SectionName))
