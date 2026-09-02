@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:18.6-alpine3.24
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-nexora}
+      POSTGRES_DB: ${POSTGRES_DB:-saas_dev}
       POSTGRES_USER: ${POSTGRES_USER:-nexora}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in a local .env file}
     ports:
@@ -26,7 +26,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
-      ConnectionStrings__NexoraDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-nexora};Username=${POSTGRES_USER:-nexora};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in a local .env file}
+      # ADR-0022: shared saas_dev database, application confined to the "nexora" schema via Search Path.
+      ConnectionStrings__NexoraDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-saas_dev};Username=${POSTGRES_USER:-nexora};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in a local .env file};Search Path=nexora
       Identity__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in a local .env file}
       Administration__BootstrapAdminEmail: ${PLATFORM_ADMIN_EMAIL:-}
       Payments__MercadoPago__AccessToken: ${MERCADOPAGO_ACCESS_TOKEN:-}
