@@ -76,6 +76,14 @@ Uma migration data-only (`20260902000000_SeedFeatureCatalog`, mesmo padrão de `
 - **TenantFeatureOverride:** vira a alavanca de suporte/exceção comercial (`ConfigureOverrideAsync` já existe). Ganha peso operacional → deveria gerar `AuditLog` — **follow-up P2.9, fora deste escopo**.
 - **Platform Admin:** desativar uma `Feature` ou um `PlanFeature` passa a ter efeito imediato no runtime dos tenants daquele plano. Os endpoints `/api/v1/admin/**` continuam fora de qualquer feature gate.
 
+### 10. Concorrência do limite de plano
+
+O limite é `contar → comparar → inserir`. Sem serialização, duas criações concorrentes contam `N-1`, ambas passam e o tenant termina com `N+1`.
+
+**Decisão:** quando há limite e o provider é PostgreSQL, a checagem roda dentro de uma transação com um `pg_advisory_xact_lock` por `(tenant, feature)` — o mesmo mecanismo (`PostgresAdvisoryLock`) que a agenda usa para não sobrepor horários. O lock é liberado no commit/rollback. Criações **sem** limite (`Limit == null`, o caso comum) não abrem transação nem lock. Providers sem advisory lock (o `InMemory` dos testes) rodam a checagem sem a serialização — aceitável, porque produção é sempre PostgreSQL.
+
+Escolheu-se advisory lock em vez de índice único parcial / constraint porque o limite é um número configurável por `PlanFeature`/override (não uma regra estrutural do schema) e varia por tenant; e em vez de `SERIALIZABLE` porque o lock é mais barato e já é padrão no projeto. `FeatureEnforcementPostgresTests.ConcurrentCreatesCannotOvershootThePlanLimitOnPostgres` dispara 10 criações simultâneas contra um limite 3 e verifica que exatamente 3 entram.
+
 ## Alternativas
 
 - **`IAuthorizationHandler`/policy por feature:** feature não é permissão; separá-las mantém os testes negativos e as mensagens claras.
@@ -83,10 +91,12 @@ Uma migration data-only (`20260902000000_SeedFeatureCatalog`, mesmo padrão de `
 - **Gate nos controllers/handlers:** polui os handlers; o endpoint filter no grupo cobre todas as rotas com uma linha.
 - **402 Payment Required / 404 para feature-off:** 403 é o correto — autenticado e autorizado por permissão, o plano é que nega; 404 esconde/revela existência sem necessidade.
 - **Sempre-on para módulos "core":** rejeitado — o MVP comercial (MASTER_PLAN §31) já diferencia planos por módulo (ex.: Relatórios só no Profissional). Todos os cinco passam pelo filtro; o plano decide.
+- **Índice único parcial / constraint para o limite:** o limite é um número configurável por `PlanFeature`/override, não uma regra estrutural do schema; um advisory lock por `(tenant, feature)` serializa a criação sem tocar o banco (§10).
 
 ## Consequências
 
-- O critério da F5 passa a ser atendido em runtime.
+- O critério da F5 passa a ser atendido em runtime — **F5 fechada** (ver `docs/roadmap.md`, MASTER_PLAN §23).
 - Qualquer tenant sem `Subscription` perde o acesso operacional até ter um plano — esperado, mas exige que provisionamento/seed de planos exista antes de operar (Platform Admin).
 - Testes que criam tenant "cru" e batem em módulo agora montam um `Plan` + `Subscription` + `PlanFeature` via `TestFeatureCatalog`.
-- `AuditLog` em override/plan/feature fica como dívida registrada (P2.9).
+- O limite de plano é serializado por advisory lock em PostgreSQL (§10); dois `POST` concorrentes não ultrapassam o limite.
+- `AuditLog` em `TenantFeatureOverride`/`PlanFeature`/`Feature` continua **não coberto** — o `AuditLog` hoje só grava tenant activate/deactivate e segmento; estender exige ampliar o audit system. Fica como **pendência P2.9** (audit incompleto), não bloqueia a F5.

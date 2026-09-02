@@ -86,6 +86,53 @@ public sealed class FeatureEnforcementPostgresTests
             $"/api/v1/reports/overview?from={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddDays(-1).ToString("O"))}&to={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddDays(1).ToString("O"))}")).StatusCode);
     }
 
+    [Fact]
+    public async Task ConcurrentCreatesCannotOvershootThePlanLimitOnPostgres()
+    {
+        if (Environment.GetEnvironmentVariable("NEXORA_HARDENING_POSTGRES") is null) return;
+        var key = Guid.NewGuid().ToString("N");
+        var slug = $"pg-limit-race-{key}";
+        const int limit = 3;
+        const int attempts = 10;
+        await using var factory = new PostgresApiFactory();
+        await factory.InitializeAsync();
+        using var client = factory.CreateClient();
+        var token = await Register(client, $"{slug}@nexora.test");
+        var tenantId = await CreateTenant(client, token, slug);
+        var scoped = await Select(client, token, slug);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+            var professionals = await db.Features.SingleAsync(x => x.Code == "PROFESSIONALS");
+            var customers = await db.Features.SingleAsync(x => x.Code == "CUSTOMERS");
+            var plan = new Plan($"PGL-{key}", "PG limit plan", DateTimeOffset.UtcNow);
+            plan.Features.Add(new PlanFeature(plan.Id, professionals.Id, true, limit));
+            plan.Features.Add(new PlanFeature(plan.Id, customers.Id, true, null));
+            db.Plans.Add(plan);
+            db.Subscriptions.Add(new Subscription(tenantId, plan.Id, BillingInterval.Monthly, DateTimeOffset.UtcNow, TimeSpan.FromDays(14)));
+            await db.SaveChangesAsync();
+        }
+
+        // Fire more creates at once than the limit allows; each on its own client so they hit
+        // the server on independent connections / request scopes.
+        var results = await Task.WhenAll(Enumerable.Range(0, attempts).Select(async n =>
+        {
+            using var racer = factory.CreateClient();
+            racer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", scoped);
+            return (await racer.PostAsJsonAsync("/api/v1/professionals", new { name = $"P{n}", isActive = true })).StatusCode;
+        }));
+
+        Assert.Equal(limit, results.Count(x => x == HttpStatusCode.Created));
+        Assert.Equal(attempts - limit, results.Count(x => x == HttpStatusCode.Conflict));
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+            Assert.Equal(limit, await db.Professionals.CountAsync(x => x.TenantId == tenantId));
+        }
+    }
+
     private static async Task<string> Register(HttpClient client, string email)
     {
         var response = await client.PostAsJsonAsync("/api/v1/identity/register", new { email, password = "Correct-Horse-42" });
