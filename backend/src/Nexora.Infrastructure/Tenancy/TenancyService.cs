@@ -1,12 +1,13 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Nexora.Application.Administration;
 using Nexora.Application.Tenancy;
 using Nexora.Domain.Tenancy;
 using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Tenancy;
 
-public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvider timeProvider) : ITenancyService
+public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvider timeProvider, IAuditLogWriter audit) : ITenancyService
 {
     public async Task<PublicTenant?> ResolvePublicAsync(string slug, CancellationToken ct)
     {
@@ -51,15 +52,33 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
         await dbContext.TenantUsers.Where(x => x.TenantId == tenantId)
             .Select(x => new TenantMembership(x.Id, x.UserId, x.User.Email, x.TenantRole.Name, x.TenantRoleId, x.IsActive)).ToArrayAsync(ct);
 
-    public async Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, CancellationToken ct)
+    public async Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, string correlationId, CancellationToken ct)
     {
         var canManage = await dbContext.TenantUsers.AnyAsync(x => x.TenantId == tenantId && x.UserId == actorUserId && x.IsActive && x.TenantRole.Permissions.Any(p=>p.PermissionKey==TenantPermissions.TenantManage), ct);
         if (!canManage) return false;
         var membership = await dbContext.TenantUsers.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.Id == membershipId, ct);
         if (membership is null) return false;
-        membership.Deactivate(); await dbContext.SaveChangesAsync(ct); return true;
+        var wasActive = membership.IsActive;
+        membership.Deactivate();
+        audit.Record(actorUserId, AuditActions.MemberDeactivated, "TenantMembership", membershipId.ToString(), correlationId, tenantId,
+            new { membershipId, wasActive });
+        await dbContext.SaveChangesAsync(ct);
+        return true;
     }
-    public async Task<bool> AssignRoleAsync(Guid tenantId,Guid membershipId,Guid roleId,CancellationToken ct){var membership=await dbContext.TenantUsers.SingleOrDefaultAsync(x=>x.Id==membershipId&&x.TenantId==tenantId,ct);var role=await dbContext.TenantRoles.SingleOrDefaultAsync(x=>x.Id==roleId&&x.TenantId==tenantId,ct);if(membership is null||role is null)return false;membership.AssignRole(role.Id);await dbContext.SaveChangesAsync(ct);return true;}
+
+    public async Task<bool> AssignRoleAsync(Guid tenantId, Guid actorUserId, Guid membershipId, Guid roleId, string correlationId, CancellationToken ct)
+    {
+        var membership = await dbContext.TenantUsers.SingleOrDefaultAsync(x => x.Id == membershipId && x.TenantId == tenantId, ct);
+        var role = await dbContext.TenantRoles.SingleOrDefaultAsync(x => x.Id == roleId && x.TenantId == tenantId, ct);
+        if (membership is null || role is null) return false;
+        var oldRoleId = membership.TenantRoleId;
+        if (oldRoleId == role.Id) return true; // no-op, nothing to audit
+        membership.AssignRole(role.Id);
+        audit.Record(actorUserId, AuditActions.MemberRoleChanged, "TenantMembership", membershipId.ToString(), correlationId, tenantId,
+            new { membershipId, oldRoleId, newRoleId = role.Id });
+        await dbContext.SaveChangesAsync(ct);
+        return true;
+    }
 
     private static string NormalizeSlug(string slug)
     {

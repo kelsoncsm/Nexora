@@ -34,8 +34,8 @@ public interface ITenancyService
     Task<IReadOnlyCollection<UserTenant>> GetUserTenantsAsync(Guid userId, CancellationToken cancellationToken);
     Task<Guid?> ResolveMembershipTenantAsync(Guid userId, string slug, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<TenantMembership>> GetMembersAsync(Guid tenantId, CancellationToken cancellationToken);
-    Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, CancellationToken cancellationToken);
-    Task<bool> AssignRoleAsync(Guid tenantId,Guid membershipId,Guid roleId,CancellationToken cancellationToken);
+    Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, string correlationId, CancellationToken cancellationToken);
+    Task<bool> AssignRoleAsync(Guid tenantId, Guid actorUserId, Guid membershipId, Guid roleId, string correlationId, CancellationToken cancellationToken);
 
     Task<TenantProfile?> GetProfileAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<TenantProfile> UpdateProfileAsync(Guid tenantId, string name, string timeZoneId, CancellationToken cancellationToken);
@@ -44,7 +44,7 @@ public interface ITenancyService
     Task<TenantRoleView?> GetRoleAsync(Guid tenantId, Guid roleId, CancellationToken cancellationToken);
     Task<TenantRoleView> CreateRoleAsync(Guid tenantId, string name, string description, IReadOnlyCollection<string> permissions, CancellationToken cancellationToken);
     Task<TenantRoleView?> UpdateRoleAsync(Guid tenantId, Guid roleId, string name, string description, CancellationToken cancellationToken);
-    Task<TenantRoleView?> SetRolePermissionsAsync(Guid tenantId, Guid roleId, IReadOnlyCollection<string> permissions, CancellationToken cancellationToken);
+    Task<TenantRoleView?> SetRolePermissionsAsync(Guid tenantId, Guid actorUserId, Guid roleId, IReadOnlyCollection<string> permissions, string correlationId, CancellationToken cancellationToken);
 }
 
 public sealed class TenantConflictException(string message) : Exception(message) { }

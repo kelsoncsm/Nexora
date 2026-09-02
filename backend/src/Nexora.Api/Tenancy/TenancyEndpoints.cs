@@ -69,17 +69,17 @@ public static class TenancyEndpoints
             ? Results.Ok(new { role.Id, role.Permissions }) : Results.NotFound();
     }
 
-    private static async Task<IResult> SetRolePermissionsAsync(Guid roleId, RolePermissionsRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    private static async Task<IResult> SetRolePermissionsAsync(Guid roleId, RolePermissionsRequest request, ITenantContext tenant, HttpContext http, ITenancyService service, CancellationToken ct)
     {
         if (!tenant.IsAvailable) return Results.Unauthorized();
-        return await service.SetRolePermissionsAsync(tenant.TenantId, roleId, request.Permissions ?? [], ct) is { } role
+        return await service.SetRolePermissionsAsync(tenant.TenantId, tenant.UserId, roleId, request.Permissions ?? [], http.TraceIdentifier, ct) is { } role
             ? Results.Ok(role) : Results.NotFound();
     }
 
-    private static async Task<IResult> AssignRoleAsync(Guid membershipId, AssignRoleRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    private static async Task<IResult> AssignRoleAsync(Guid membershipId, AssignRoleRequest request, ITenantContext tenant, HttpContext http, ITenancyService service, CancellationToken ct)
     {
         if (!tenant.IsAvailable) return Results.Unauthorized();
-        return await service.AssignRoleAsync(tenant.TenantId, membershipId, request.RoleId, ct) ? Results.NoContent() : Results.NotFound();
+        return await service.AssignRoleAsync(tenant.TenantId, tenant.UserId, membershipId, request.RoleId, http.TraceIdentifier, ct) ? Results.NoContent() : Results.NotFound();
     }
 
     private static async Task<IResult> ResolvePublicAsync(string tenantSlug, ITenancyService service, CancellationToken ct) =>
@@ -106,8 +106,8 @@ public static class TenancyEndpoints
     private static async Task<IResult> GetMembersAsync(ITenantContext tenant, ITenancyService service, CancellationToken ct) =>
         tenant.IsAvailable ? Results.Ok(await service.GetMembersAsync(tenant.TenantId, ct)) : Results.Unauthorized();
 
-    private static async Task<IResult> DeactivateAsync(Guid membershipId, ITenantContext tenant, ITenancyService service, CancellationToken ct) =>
-        tenant.IsAvailable && await service.DeactivateMembershipAsync(tenant.TenantId, tenant.UserId, membershipId, ct)
+    private static async Task<IResult> DeactivateAsync(Guid membershipId, ITenantContext tenant, HttpContext http, ITenancyService service, CancellationToken ct) =>
+        tenant.IsAvailable && await service.DeactivateMembershipAsync(tenant.TenantId, tenant.UserId, membershipId, http.TraceIdentifier, ct)
             ? Results.NoContent() : Results.NotFound();
 
     private static Guid UserId(ClaimsPrincipal principal) => Guid.Parse(

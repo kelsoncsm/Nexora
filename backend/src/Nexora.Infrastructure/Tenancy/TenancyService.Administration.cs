@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Nexora.Application.Administration;
 using Nexora.Application.Tenancy;
 using Nexora.Domain.Tenancy;
 
@@ -80,14 +81,20 @@ public sealed partial class TenancyService
             role.Permissions.Select(p => p.PermissionKey).ToArray());
     }
 
-    public async Task<TenantRoleView?> SetRolePermissionsAsync(Guid tenantId, Guid roleId, IReadOnlyCollection<string> permissions, CancellationToken ct)
+    public async Task<TenantRoleView?> SetRolePermissionsAsync(Guid tenantId, Guid actorUserId, Guid roleId, IReadOnlyCollection<string> permissions, string correlationId, CancellationToken ct)
     {
         var role = await dbContext.TenantRoles.Include(x => x.Permissions)
             .SingleOrDefaultAsync(x => x.TenantId == tenantId && x.Id == roleId, ct);
         if (role is null) return null;
         if (role.IsSystem) throw new TenantValidationException("System role permissions cannot be modified.");
         var keys = ValidatePermissionKeys(permissions);
+        var before = role.Permissions.Select(p => p.PermissionKey).ToHashSet(StringComparer.Ordinal);
+        var added = keys.Where(k => !before.Contains(k)).ToArray();
+        var removed = before.Where(k => !keys.Contains(k, StringComparer.Ordinal)).ToArray();
         role.ReplacePermissions(keys);
+        if (added.Length > 0 || removed.Length > 0)
+            audit.Record(actorUserId, AuditActions.RolePermissionsChanged, "TenantRole", roleId.ToString(), correlationId, tenantId,
+                new { roleId, added, removed });
         await dbContext.SaveChangesAsync(ct);
         return new TenantRoleView(role.Id, role.Name, role.Description, role.IsSystem,
             await dbContext.TenantUsers.CountAsync(u => u.TenantRoleId == role.Id && u.IsActive, ct), keys);
