@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+// Nexora usa apenas tema claro — não há alternância de tema no shell.
 import { RouterLink } from '@angular/router';
 import { NxShellUser } from './nav';
 
@@ -24,14 +25,6 @@ import { NxShellUser } from './nav';
         <button class="nx-iconbtn" title="Notificações" aria-label="Notificações">
           <svg class="nx-ico"><use href="#i-bell" /></svg><span class="nx-dot"></span>
         </button>
-        <button
-          class="nx-iconbtn"
-          [title]="theme() === 'dark' ? 'Tema claro' : 'Tema escuro'"
-          aria-label="Alternar tema"
-          (click)="toggleTheme.emit()"
-        >
-          <svg class="nx-ico"><use [attr.href]="theme() === 'dark' ? '#i-sun' : '#i-moon'" /></svg>
-        </button>
         <div class="nx-dropdown">
           <button
             class="nx-user-chip"
@@ -47,10 +40,6 @@ import { NxShellUser } from './nav';
             <div class="nx-dropdown-menu">
               <a routerLink="/perfil" (click)="open.set(false)"><svg class="nx-ico"><use href="#i-user" /></svg>Meu perfil</a>
               <a routerLink="/assinatura" (click)="open.set(false)"><svg class="nx-ico"><use href="#i-card" /></svg>Minha assinatura</a>
-              <button type="button" (click)="toggleTheme.emit(); open.set(false)">
-                <svg class="nx-ico"><use [attr.href]="theme() === 'dark' ? '#i-sun' : '#i-moon'" /></svg>
-                {{ theme() === 'dark' ? 'Tema claro' : 'Tema escuro' }}
-              </button>
               <button type="button" class="danger" (click)="open.set(false); logout.emit()">
                 <svg class="nx-ico"><use href="#i-logout" /></svg>Sair
               </button>
@@ -64,9 +53,7 @@ import { NxShellUser } from './nav';
 export class NxTopbar {
   readonly title = input.required<string>();
   readonly user = input.required<NxShellUser>();
-  readonly theme = input.required<'light' | 'dark'>();
   readonly toggleNav = output<void>();
-  readonly toggleTheme = output<void>();
   readonly logout = output<void>();
   readonly open = signal(false);
 }

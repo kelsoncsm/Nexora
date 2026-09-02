@@ -12,7 +12,6 @@ interface ShellPlan {
   planCode: string;
   status: string;
 }
-type Theme = 'light' | 'dark';
 
 @Component({
   selector: 'app-root',
@@ -27,7 +26,6 @@ export class App {
 
   readonly navOpen = signal(false);
   readonly collapsed = signal(false);
-  readonly theme = signal<Theme>(this.readTheme());
   readonly plan = signal<ShellPlan | null>(null);
   readonly currentUrl = signal(this.router.url);
 
@@ -146,7 +144,14 @@ export class App {
   });
 
   constructor() {
-    this.applyTheme(this.theme());
+    // Nexora tem um único tema (claro). Removemos qualquer preferência antiga que
+    // o navegador ainda guarde e fixamos o esquema de cores claro no documento.
+    try {
+      localStorage.removeItem('nx-theme');
+    } catch {
+      /* storage indisponível */
+    }
+    document.documentElement.setAttribute('data-theme', 'light');
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
@@ -184,32 +189,7 @@ export class App {
     else this.collapsed.set(!this.collapsed());
   }
 
-  toggleTheme() {
-    const next: Theme = this.theme() === 'dark' ? 'light' : 'dark';
-    this.theme.set(next);
-    this.applyTheme(next);
-    try {
-      localStorage.setItem('nx-theme', next);
-    } catch {
-      /* storage indisponível */
-    }
-  }
-
   logout() {
     this.auth.logout().subscribe(() => void this.router.navigateByUrl('/login'));
-  }
-
-  private applyTheme(theme: Theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-
-  private readTheme(): Theme {
-    try {
-      const stored = localStorage.getItem('nx-theme');
-      if (stored === 'light' || stored === 'dark') return stored;
-    } catch {
-      /* storage indisponível */
-    }
-    return 'light';
   }
 }

@@ -29,6 +29,45 @@ describe('App', () => {
   });
 });
 
+describe('App — tema único (claro)', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [provideRouter([]), provideHttpClient(), { provide: APP_CONFIG, useValue: { apiBaseUrl: '/api/v1' } }],
+    }).compileComponents();
+  });
+
+  it('não expõe alternância de tema no shell', () => {
+    const app = TestBed.createComponent(App).componentInstance as unknown as Record<string, unknown>;
+    expect(app['toggleTheme']).toBeUndefined();
+    expect(app['theme']).toBeUndefined();
+  });
+
+  it('fixa data-theme="light" no documento e descarta preferência antiga do navegador', () => {
+    try {
+      localStorage.setItem('nx-theme', 'dark');
+    } catch {
+      /* storage indisponível no runner */
+    }
+    document.documentElement.setAttribute('data-theme', 'dark');
+
+    TestBed.createComponent(App);
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('nx-theme')).toBeNull();
+  });
+
+  it('não renderiza botão de alternar tema na topbar', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const html = (fixture.nativeElement as HTMLElement).innerHTML;
+    expect(html).not.toContain('Alternar tema');
+    expect(html).not.toContain('#i-moon');
+    expect(html).not.toContain('#i-sun');
+  });
+});
+
 describe('App sidebar gating (permission AND feature)', () => {
   function buildAuth(overrides: Record<string, unknown>) {
     return {

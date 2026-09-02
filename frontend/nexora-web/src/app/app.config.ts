@@ -24,6 +24,9 @@ export const appConfig: ApplicationConfig = {
       theme: {
         preset: NexoraPreset,
         options: {
+          // Nexora é tema claro fixo: desliga o dark mode do PrimeNG (por padrão ele
+          // segue prefers-color-scheme do sistema operacional).
+          darkModeSelector: false,
           cssLayer: {
             name: 'primeng',
             order: 'reset, primeng, nexora'
