@@ -209,165 +209,197 @@ namespace Nexora.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameTable(
-                name: "working_hours",
-                schema: "scheduling",
-                newName: "working_hours");
-
+            // Move every table back to public with an explicit newSchema (EF's scaffolded
+            // reversal omits it, which no-ops), then drop the now-empty context schemas.
             migrationBuilder.RenameTable(
                 name: "users",
                 schema: "identity",
-                newName: "users");
-
-            migrationBuilder.RenameTable(
-                name: "user_roles",
-                schema: "identity",
-                newName: "user_roles");
-
-            migrationBuilder.RenameTable(
-                name: "tenants",
-                schema: "tenancy",
-                newName: "tenants");
-
-            migrationBuilder.RenameTable(
-                name: "tenant_users",
-                schema: "tenancy",
-                newName: "tenant_users");
-
-            migrationBuilder.RenameTable(
-                name: "tenant_roles",
-                schema: "tenancy",
-                newName: "tenant_roles");
-
-            migrationBuilder.RenameTable(
-                name: "tenant_role_permissions",
-                schema: "tenancy",
-                newName: "tenant_role_permissions");
-
-            migrationBuilder.RenameTable(
-                name: "tenant_feature_overrides",
-                schema: "plans",
-                newName: "tenant_feature_overrides");
-
-            migrationBuilder.RenameTable(
-                name: "subscriptions",
-                schema: "billing",
-                newName: "subscriptions");
-
-            migrationBuilder.RenameTable(
-                name: "subscription_events",
-                schema: "billing",
-                newName: "subscription_events");
-
-            migrationBuilder.RenameTable(
-                name: "services",
-                schema: "catalog",
-                newName: "services");
+                newName: "users",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "roles",
                 schema: "identity",
-                newName: "roles");
-
-            migrationBuilder.RenameTable(
-                name: "role_permissions",
-                schema: "identity",
-                newName: "role_permissions");
-
-            migrationBuilder.RenameTable(
-                name: "refresh_tokens",
-                schema: "identity",
-                newName: "refresh_tokens");
-
-            migrationBuilder.RenameTable(
-                name: "professionals",
-                schema: "catalog",
-                newName: "professionals");
-
-            migrationBuilder.RenameTable(
-                name: "professional_services",
-                schema: "catalog",
-                newName: "professional_services");
-
-            migrationBuilder.RenameTable(
-                name: "processed_webhook_events",
-                schema: "billing",
-                newName: "processed_webhook_events");
-
-            migrationBuilder.RenameTable(
-                name: "plans",
-                schema: "plans",
-                newName: "plans");
-
-            migrationBuilder.RenameTable(
-                name: "plan_prices",
-                schema: "billing",
-                newName: "plan_prices");
-
-            migrationBuilder.RenameTable(
-                name: "plan_features",
-                schema: "plans",
-                newName: "plan_features");
+                newName: "roles",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "permissions",
                 schema: "identity",
-                newName: "permissions");
+                newName: "permissions",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
-                name: "onboarding_drafts",
-                schema: "onboarding",
-                newName: "onboarding_drafts");
+                name: "role_permissions",
+                schema: "identity",
+                newName: "role_permissions",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
-                name: "features",
-                schema: "plans",
-                newName: "features");
+                name: "user_roles",
+                schema: "identity",
+                newName: "user_roles",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
-                name: "email_outbox_messages",
-                schema: "notifications",
-                newName: "email_outbox_messages");
+                name: "refresh_tokens",
+                schema: "identity",
+                newName: "refresh_tokens",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
-                name: "customers",
-                schema: "customers",
-                newName: "customers");
+                name: "tenants",
+                schema: "tenancy",
+                newName: "tenants",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "tenant_users",
+                schema: "tenancy",
+                newName: "tenant_users",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "tenant_roles",
+                schema: "tenancy",
+                newName: "tenant_roles",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "tenant_role_permissions",
+                schema: "tenancy",
+                newName: "tenant_role_permissions",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "business_segments",
                 schema: "platform",
-                newName: "business_segments");
-
-            migrationBuilder.RenameTable(
-                name: "blocked_periods",
-                schema: "scheduling",
-                newName: "blocked_periods");
-
-            migrationBuilder.RenameTable(
-                name: "billing_payments",
-                schema: "billing",
-                newName: "billing_payments");
-
-            migrationBuilder.RenameTable(
-                name: "billing_invoices",
-                schema: "billing",
-                newName: "billing_invoices");
+                newName: "business_segments",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "audit_logs",
                 schema: "platform",
-                newName: "audit_logs");
+                newName: "audit_logs",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "features",
+                schema: "plans",
+                newName: "features",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "plans",
+                schema: "plans",
+                newName: "plans",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "plan_features",
+                schema: "plans",
+                newName: "plan_features",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "tenant_feature_overrides",
+                schema: "plans",
+                newName: "tenant_feature_overrides",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "subscriptions",
+                schema: "billing",
+                newName: "subscriptions",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "subscription_events",
+                schema: "billing",
+                newName: "subscription_events",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "plan_prices",
+                schema: "billing",
+                newName: "plan_prices",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "billing_invoices",
+                schema: "billing",
+                newName: "billing_invoices",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "billing_payments",
+                schema: "billing",
+                newName: "billing_payments",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "processed_webhook_events",
+                schema: "billing",
+                newName: "processed_webhook_events",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "customers",
+                schema: "customers",
+                newName: "customers",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "professionals",
+                schema: "catalog",
+                newName: "professionals",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "services",
+                schema: "catalog",
+                newName: "services",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "professional_services",
+                schema: "catalog",
+                newName: "professional_services",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "working_hours",
+                schema: "scheduling",
+                newName: "working_hours",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "blocked_periods",
+                schema: "scheduling",
+                newName: "blocked_periods",
+                newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "appointments",
                 schema: "scheduling",
-                newName: "appointments");
+                newName: "appointments",
+                newSchema: "public");
 
-            // Every table is back in public now, so the context schemas are empty and safe to drop.
-            migrationBuilder.DropSchema(name: "scheduling");
-            migrationBuilder.DropSchema(name: "notifications");
+            migrationBuilder.RenameTable(
+                name: "email_outbox_messages",
+                schema: "notifications",
+                newName: "email_outbox_messages",
+                newSchema: "public");
+
+            migrationBuilder.RenameTable(
+                name: "onboarding_drafts",
+                schema: "onboarding",
+                newName: "onboarding_drafts",
+                newSchema: "public");
+
             migrationBuilder.DropSchema(name: "onboarding");
+            migrationBuilder.DropSchema(name: "notifications");
+            migrationBuilder.DropSchema(name: "scheduling");
             migrationBuilder.DropSchema(name: "catalog");
             migrationBuilder.DropSchema(name: "customers");
             migrationBuilder.DropSchema(name: "billing");

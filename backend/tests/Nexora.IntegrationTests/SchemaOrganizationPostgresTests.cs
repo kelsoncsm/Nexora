@@ -164,6 +164,53 @@ public sealed class SchemaOrganizationPostgresTests
         }
     }
 
+    [Fact]
+    public async Task TheSchemaMigrationRoundTripsDownToPublicAndBackUp()
+    {
+        var baseConnection = Environment.GetEnvironmentVariable("NEXORA_HARDENING_POSTGRES");
+        if (baseConnection is null) return;
+
+        var dbName = $"nexora_schematest_{Guid.NewGuid():N}";
+        var admin = new NpgsqlConnectionStringBuilder(baseConnection) { Database = "postgres" }.ConnectionString;
+        var target = new NpgsqlConnectionStringBuilder(baseConnection) { Database = dbName }.ConnectionString;
+        await ExecAsync(admin, $"CREATE DATABASE \"{dbName}\"");
+        try
+        {
+            var options = new DbContextOptionsBuilder<NexoraDbContext>().UseNpgsql(target).Options;
+
+            await using (var db = new NexoraDbContext(options))
+                await db.Database.MigrateAsync();
+            await AssertLayoutAsync(target, contextTables: 31, publicBaseTables: 1);
+
+            // Down() must move every table back to public and drop the context schemas.
+            await using (var db = new NexoraDbContext(options))
+                await db.GetService<IMigrator>().MigrateAsync(BeforeSchemaMove);
+            await AssertLayoutAsync(target, contextTables: 0, publicBaseTables: 32);
+
+            // And it re-applies cleanly.
+            await using (var db = new NexoraDbContext(options))
+                await db.Database.MigrateAsync();
+            await AssertLayoutAsync(target, contextTables: 31, publicBaseTables: 1);
+        }
+        finally
+        {
+            await ExecAsync(admin, $"DROP DATABASE IF EXISTS \"{dbName}\" WITH (FORCE)");
+        }
+    }
+
+    private static async Task AssertLayoutAsync(string connectionString, int contextTables, int publicBaseTables)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        Assert.Equal((long)contextTables, await ScalarAsync(conn, """
+            SELECT count(*) FROM information_schema.tables
+            WHERE table_type = 'BASE TABLE'
+              AND table_schema IN ('identity','tenancy','platform','plans','billing','customers','catalog','scheduling','notifications','onboarding')
+            """));
+        Assert.Equal((long)publicBaseTables, await ScalarAsync(conn,
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
+    }
+
     // ---- helpers -----------------------------------------------------------------------------
 
     private static async Task ExecAsync(string connectionString, string sql)
