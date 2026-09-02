@@ -17,7 +17,9 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor])),
-    { provide: APP_CONFIG, useValue: { ...environment, apiBaseUrl: window.__NEXORA_CONFIG__?.apiBaseUrl ?? environment.apiBaseUrl } },
+    // The runtime config.js override is for deployed builds (nginx injects the real value).
+    // In dev, environment.development.ts wins so `ng serve` talks straight to localhost:8080.
+    { provide: APP_CONFIG, useValue: { ...environment, apiBaseUrl: (environment.production ? window.__NEXORA_CONFIG__?.apiBaseUrl : undefined) ?? environment.apiBaseUrl } },
     providePrimeNG({
       theme: {
         preset: NexoraPreset,
