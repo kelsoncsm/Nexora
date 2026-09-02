@@ -12,14 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nexora.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NexoraDbContext))]
-    [Migration("20260902111923_OrganizeSchemasByContext")]
-    partial class OrganizeSchemasByContext
+    [Migration("20260902132646_AddAuditLogTenantAndDetails")]
+    partial class AddAuditLogTenantAndDetails
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("nexora")
                 .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -44,6 +45,9 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -60,13 +64,16 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ActorUserId");
 
                     b.HasIndex("OccurredAt");
 
-                    b.ToTable("audit_logs", "platform");
+                    b.ToTable("audit_logs", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Administration.BusinessSegment", b =>
@@ -96,7 +103,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("business_segments", "platform");
+                    b.ToTable("business_segments", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.BillingInvoice", b =>
@@ -160,7 +167,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("SubscriptionId", "CoverageStart", "CoverageEnd")
                         .IsUnique();
 
-                    b.ToTable("billing_invoices", "billing");
+                    b.ToTable("billing_invoices", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.BillingPayment", b =>
@@ -217,7 +224,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Gateway", "ExternalPaymentId")
                         .IsUnique();
 
-                    b.ToTable("billing_payments", "billing");
+                    b.ToTable("billing_payments", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.PlanPrice", b =>
@@ -258,7 +265,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"IsActive\" = TRUE");
 
-                    b.ToTable("plan_prices", "billing");
+                    b.ToTable("plan_prices", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.ProcessedWebhookEvent", b =>
@@ -290,7 +297,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Provider", "ExternalEventId")
                         .IsUnique();
 
-                    b.ToTable("processed_webhook_events", "billing");
+                    b.ToTable("processed_webhook_events", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.Subscription", b =>
@@ -354,7 +361,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Status", "TrialEndAt");
 
-                    b.ToTable("subscriptions", "billing");
+                    b.ToTable("subscriptions", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Billing.SubscriptionEvent", b =>
@@ -387,7 +394,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SubscriptionId", "OccurredAt");
 
-                    b.ToTable("subscription_events", "billing");
+                    b.ToTable("subscription_events", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Catalog.Professional", b =>
@@ -419,7 +426,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "Name");
 
-                    b.ToTable("professionals", "catalog");
+                    b.ToTable("professionals", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Catalog.ProfessionalService", b =>
@@ -437,7 +444,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "ServiceId");
 
-                    b.ToTable("professional_services", "catalog");
+                    b.ToTable("professional_services", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Catalog.Service", b =>
@@ -472,7 +479,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "Name");
 
-                    b.ToTable("services", "catalog");
+                    b.ToTable("services", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Customers.Customer", b =>
@@ -521,7 +528,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "Status");
 
-                    b.ToTable("customers", "customers");
+                    b.ToTable("customers", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.Permission", b =>
@@ -540,7 +547,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("permissions", "identity");
+                    b.ToTable("permissions", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.RefreshToken", b =>
@@ -585,7 +592,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId", "FamilyId");
 
-                    b.ToTable("refresh_tokens", "identity");
+                    b.ToTable("refresh_tokens", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.Role", b =>
@@ -604,7 +611,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("roles", "identity");
+                    b.ToTable("roles", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.RolePermission", b =>
@@ -619,7 +626,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("role_permissions", "identity");
+                    b.ToTable("role_permissions", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.User", b =>
@@ -654,7 +661,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
-                    b.ToTable("users", "identity");
+                    b.ToTable("users", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Identity.UserRole", b =>
@@ -669,7 +676,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("user_roles", "identity");
+                    b.ToTable("user_roles", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Notifications.EmailOutboxMessage", b =>
@@ -742,7 +749,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "CreatedAt");
 
-                    b.ToTable("email_outbox_messages", "notifications");
+                    b.ToTable("email_outbox_messages", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Onboarding.OnboardingDraft", b =>
@@ -810,7 +817,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"Status\" = 'InProgress'");
 
-                    b.ToTable("onboarding_drafts", "onboarding");
+                    b.ToTable("onboarding_drafts", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Plans.Feature", b =>
@@ -840,7 +847,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("features", "plans");
+                    b.ToTable("features", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Plans.Plan", b =>
@@ -876,7 +883,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("plans", "plans");
+                    b.ToTable("plans", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Plans.PlanFeature", b =>
@@ -897,7 +904,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FeatureId");
 
-                    b.ToTable("plan_features", "plans");
+                    b.ToTable("plan_features", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Plans.TenantFeatureOverride", b =>
@@ -925,7 +932,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "FeatureId")
                         .IsUnique();
 
-                    b.ToTable("tenant_feature_overrides", "plans");
+                    b.ToTable("tenant_feature_overrides", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Scheduling.Appointment", b =>
@@ -977,7 +984,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "ProfessionalId", "StartAt");
 
-                    b.ToTable("appointments", "scheduling");
+                    b.ToTable("appointments", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Scheduling.BlockedPeriod", b =>
@@ -1006,7 +1013,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "ProfessionalId", "StartAt");
 
-                    b.ToTable("blocked_periods", "scheduling");
+                    b.ToTable("blocked_periods", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Scheduling.WorkingHours", b =>
@@ -1035,7 +1042,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "ProfessionalId", "DayOfWeek")
                         .IsUnique();
 
-                    b.ToTable("working_hours", "scheduling");
+                    b.ToTable("working_hours", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Tenancy.Tenant", b =>
@@ -1075,7 +1082,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.ToTable("tenants", "tenancy");
+                    b.ToTable("tenants", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Tenancy.TenantRole", b =>
@@ -1105,7 +1112,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
-                    b.ToTable("tenant_roles", "tenancy");
+                    b.ToTable("tenant_roles", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Tenancy.TenantRolePermission", b =>
@@ -1119,7 +1126,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasKey("TenantRoleId", "PermissionKey");
 
-                    b.ToTable("tenant_role_permissions", "tenancy");
+                    b.ToTable("tenant_role_permissions", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Tenancy.TenantUser", b =>
@@ -1152,7 +1159,7 @@ namespace Nexora.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId", "IsActive");
 
-                    b.ToTable("tenant_users", "tenancy");
+                    b.ToTable("tenant_users", "nexora");
                 });
 
             modelBuilder.Entity("Nexora.Domain.Administration.AuditLog", b =>
