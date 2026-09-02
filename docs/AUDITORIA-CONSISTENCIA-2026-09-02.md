@@ -92,8 +92,8 @@ Analisadas e descartadas como P0:
 
 ## 5. INCONSISTÊNCIAS MÉDIAS — P2
 
-- **P2.1 — Billing sem gate de permissão.** `GET /api/v1/subscription`, `GET /api/v1/billing/invoices`, `POST /api/v1/billing/checkout` só exigem `RequireClaim("tenant_id")`. Qualquer membro vê a assinatura e **dispara um checkout**. Deveria exigir `tenant.manage`. Frontend: menu "Plano e Assinatura" e `/assinatura` sem gate de permissão. `TenantBillingEndpoints.cs`.
-- **P2.2 — `GET /api/v1/tenant/members` (e `/t/{slug}/members`) sem permissão.** Só `.RequireAuthorization()`. Qualquer membro autenticado lista **e-mail + papel + status de todos os membros**. `TenancyEndpoints.cs`.
+- **P2.1 — Billing sem gate de permissão.** ~~`GET /api/v1/subscription`, `GET /api/v1/billing/invoices`, `POST /api/v1/billing/checkout` só exigem `RequireClaim("tenant_id")`.~~ **RESOLVIDO 2026-09-02:** os três exigem `tenant.manage` (`TenantBillingEndpoints.cs`); billing continua fora do `RequireFeature` map, então owner inadimplente ainda regulariza; sidebar "Plano e Assinatura" e badge do plano gateados por `tenant.manage`; `billing-page` mostra 403. `BillingAndMembershipAuthorizationTests`.
+- **P2.2 — `GET /api/v1/tenant/members` (e `/t/{slug}/members`) sem permissão.** ~~Só `.RequireAuthorization()`.~~ **RESOLVIDO 2026-09-02:** ambas as rotas exigem `tenant.manage` (`TenancyEndpoints.cs`), alinhado a role/permission/deactivate; sidebar "Usuários e Equipe" gateada. `BillingAndMembershipAuthorizationTests`.
 - **P2.3 — Frontend sem interceptor de erro/refresh.** Só `auth.interceptor` (anexa Bearer). Não há 401 → `refresh()` → retry; quando o access token de 15min expira, a próxima chamada falha com erro genérico da tela até o usuário recarregar. Sem toast/handler global de erro. `api-guidelines.md` pede padronização de erros. `frontend/nexora-web/src/app/core/**`.
 - **P2.4 — Sem `GET /me/tenants`** (raiz de P1.2) — impede um seletor de empresa.
 - **P2.5 — Rotas tenant redirecionam para `/` logo após login.** `tenantGuard` → `auth.tenantId() ? true : '/'`. Determinístico após login (token sem `tenant_id`), parece "intermitente" só porque o cookie tenant-scoped às vezes sobrevive de uma sessão anterior. Consequência de P1.2.
@@ -299,7 +299,7 @@ Ressalva menor: mudança de papel/permissão só reflete no JWT no próximo `ref
 | Webhook | HMAC-SHA256 + tolerância de timestamp + `FixedTimeEquals`; `AllowAnonymous`; idempotência por unique index. |
 | Endpoints admin | Grupo único `PlatformAdmin` (rejeita `tenant_id`). |
 | Logs | `AddJsonConsole`; `GlobalExceptionHandler` loga só em 500, com `TraceIdentifier`. `Microsoft.EntityFrameworkCore.Database.Command: Warning` em prod (não loga SQL de comandos). **Nunca loga token/senha.** |
-| Autorização server-side | Sim, por policy de permissão. **Exceção:** feature não entra na decisão (P1.1); billing sem permissão (P2.1); members list sem permissão (P2.2); deactivate com permissão errada (P1.4). |
+| Autorização server-side | Sim, por policy de permissão. P1.1 (feature enforcement), P1.4 (deactivate), P2.1 (billing/subscription → `tenant.manage`) e P2.2 (`GET /tenant/members` → `tenant.manage`) **RESOLVIDOS 2026-09-02**. Pendência: `AuditLog` de billing/subscription e de membership (P2.9). |
 | Auditoria | Parcial (P2.9). |
 | `dotnet list --vulnerable` | limpo. `npm audit` | 0. |
 
