@@ -100,7 +100,7 @@ Analisadas e descartadas como P0:
 - **P2.6 — Listagens sem paginação** exceto `/customers` (que tem page/pageSize/sort/search + total). `/professionals`, `/services`, `/appointments` (por janela de data), `/admin/users` retornam a coleção inteira. `api-guidelines.md` pede paginação para listas potencialmente grandes. `NxPagination` (frontend) foi criado mas não está plugado.
 - **P2.7 — Campos de UUID crus na UI.** `schedule-page` (customerId/professionalId/serviceId no modal de agendamento; professionalId nos modais de disponibilidade/bloqueio) e telas de Admin (tenantId/planId em Assinaturas e Preços). Parte por limitação de endpoint (Admin não tem "list tenants" para o select), parte por não ter sido feito (scheduling tem `/professionals` e `/customers` disponíveis).
 - **P2.8 — `subscription-admin-page.changePlan()` usa `window.prompt`** — dialog bloqueante do browser; deveria ser um modal (`NxModal`).
-- **P2.9 — Auditoria incompleta.** `AuditLog` (append-only, com ator/ação/alvo/resultado/correlação/instante) é gravado só em `SetTenantActiveAsync`, `CreateSegmentAsync`, `UpdateSegmentAsync` (`AdministrationService`). **Não** em: `CreateRoleAsync`/`UpdateRoleAsync`/`SetRolePermissionsAsync`/`AssignRoleAsync` (mudança de papéis/permissões — `security.md` lista como evento crítico), `DeactivateMembershipAsync`, ações de subscription (guardam `SubscriptionEvent`, mas não `AuditLog`; correlação só via `context.TraceIdentifier`), login/refresh/logout/falha de login.
+- **P2.9 — Auditoria incompleta.** ~~`AuditLog` gravado só em `SetTenantActiveAsync`, `CreateSegmentAsync`, `UpdateSegmentAsync`.~~ **RESOLVIDO 2026-09-02 (ADR-0021).** `AuditLog` ganhou `TenantId` + `Details` (jsonb) e passou a registrar `member.role_changed`, `member.deactivated`, `role.permissions_changed`, `tenant_feature_override.configured`, `plan_feature.configured`, `billing.checkout_requested` — via `IAuditLogWriter`, na mesma transação da mutação, ator humano do contexto, sem segredo, sem duplicar retry idempotente. Transições de subscription por sistema permanecem em `SubscriptionEvent`. `AuditLogTests` (12). **Pendências remanescentes:** login/refresh/logout/falha de login não auditados; política de retenção não definida.
 
 ---
 
@@ -299,8 +299,8 @@ Ressalva menor: mudança de papel/permissão só reflete no JWT no próximo `ref
 | Webhook | HMAC-SHA256 + tolerância de timestamp + `FixedTimeEquals`; `AllowAnonymous`; idempotência por unique index. |
 | Endpoints admin | Grupo único `PlatformAdmin` (rejeita `tenant_id`). |
 | Logs | `AddJsonConsole`; `GlobalExceptionHandler` loga só em 500, com `TraceIdentifier`. `Microsoft.EntityFrameworkCore.Database.Command: Warning` em prod (não loga SQL de comandos). **Nunca loga token/senha.** |
-| Autorização server-side | Sim, por policy de permissão. P1.1 (feature enforcement), P1.4 (deactivate), P2.1 (billing/subscription → `tenant.manage`) e P2.2 (`GET /tenant/members` → `tenant.manage`) **RESOLVIDOS 2026-09-02**. Pendência: `AuditLog` de billing/subscription e de membership (P2.9). |
-| Auditoria | Parcial (P2.9). |
+| Autorização server-side | Sim, por policy de permissão. P1.1 (feature enforcement), P1.4 (deactivate), P2.1 (billing/subscription → `tenant.manage`) e P2.2 (`GET /tenant/members` → `tenant.manage`) **RESOLVIDOS 2026-09-02**. P2.9 (auditoria de membership/billing/feature) **RESOLVIDO 2026-09-02** (ADR-0021). |
+| Auditoria | member role/deactivate, role permissions, feature override, plan feature, checkout auditados (ADR-0021). Falta: login/logout, retenção. |
 | `dotnet list --vulnerable` | limpo. `npm audit` | 0. |
 
 ---
@@ -358,8 +358,8 @@ Ressalva menor: mudança de papel/permissão só reflete no JWT no próximo `ref
 | F1 Fundação | **CONCLUÍDA** | 4 projetos + Angular + Docker + health + Swagger + logging JSON | estrutura difere do plano (§5) sem ADR (P3.9) |
 | F2 Identity/Segurança | **CONCLUÍDA** | JWT+refresh rotativo, `IdentityFlowTests`, ADR-0007 | recuperação/alteração de senha não existem |
 | F3 Multi-tenancy | **CONCLUÍDA** | isolamento manual + FKs compostas + `TenancyIsolationTests` (PG) | sem global filter (P3.1) |
-| F4 Platform Admin | **CONCLUÍDA** | grupo `/admin` + `PlatformAdmin` policy + `AuditLog` + `PlatformAdministrationTests` | auditoria não cobre tudo (P2.9) |
-| F5 Plans/Features | **CONCLUÍDA** (2026-09-02, ADR-0019) | entidades + `FeatureAccessService` + `RequireFeature` nos 5 grupos + limites com advisory lock + `TenantFeatureOverride` + corte na `Subscription` vencida + `GET /identity/me` features + `featureGuard`/sidebar; `FeatureEnforcementTests`/`FeatureEnforcementPostgresTests` | `AuditLog` de override/plan/feature (P2.9), não bloqueante |
+| F4 Platform Admin | **CONCLUÍDA** | grupo `/admin` + `PlatformAdmin` policy + `AuditLog` + `PlatformAdministrationTests` | login/logout não auditados (P2.9 parcial) |
+| F5 Plans/Features | **CONCLUÍDA** (2026-09-02, ADR-0019) | entidades + `FeatureAccessService` + `RequireFeature` nos 5 grupos + limites com advisory lock + `TenantFeatureOverride` + corte na `Subscription` vencida + `GET /identity/me` features + `featureGuard`/sidebar; `FeatureEnforcementTests`/`FeatureEnforcementPostgresTests` | — (override/plan/feature auditados, ADR-0021) |
 | F6 Customers | **CONCLUÍDA** | CRUD + busca + paginação + status, tenant-scoped, testado | — |
 | F7 Professionals/Services | **CONCLUÍDA** | CRUD + vínculo + FKs compostas, `CatalogIsolationTests` | sem paginação (P2.6) |
 | F8 Scheduling | **CONCLUÍDA** | working hours + bloqueios + appointments + conflito + status + timezone + advisory lock, `SchedulingTests` | UUID crus na UI (P2.7) |
@@ -380,7 +380,7 @@ Ressalva menor: mudança de papel/permissão só reflete no JWT no próximo `ref
 3. **P1.4** — Desativar membro da equipe é gateado em `customers.delete` (permissão errada).
 4. **P1.2** — Usuário que retorna não consegue reentrar na empresa (sem "minhas empresas", slug digitado).
 5. **P2.1** — Billing (`/subscription`, `/billing/checkout`) sem gate de permissão — qualquer membro cria checkout.
-6. **P2.9** — Auditoria não cobre mudança de papéis/permissões, desativação de membro, ações de subscription.
+6. ~~**P2.9** — Auditoria incompleta.~~ RESOLVIDO 2026-09-02 (ADR-0021) — falta só login/logout e retenção.
 7. **P2.2** — `GET /tenant/members` sem permissão — qualquer membro lista e-mails de todos.
 8. **P2.3** — Frontend sem interceptor de erro/refresh — sessão "quebra" em 15min até reload.
 9. **P2.6** — Listagens sem paginação exceto `/customers` (risco de performance na escala).

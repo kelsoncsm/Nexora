@@ -59,6 +59,8 @@ Nunca registrar senha, hash de senha sem necessidade, access token, refresh toke
 
 Eventos críticos usam registros estruturados, não apenas texto livre. Exemplos: login/revogação relevantes, alteração de permissões ou plano, desativação de tenant, ação de Platform Admin e evento financeiro importante. O evento deve permitir identificar ator, escopo, ação, alvo, instante, resultado e correlação sem guardar segredo.
 
+`AuditLog` (`platform.audit_logs`, append-only) grava, além das ações de plataforma já cobertas, as ações sensíveis de administração de tenant e de plano/billing (ADR-0021, P2.9): `member.role_changed`, `member.deactivated`, `role.permissions_changed`, `tenant_feature_override.configured`, `plan_feature.configured` e `billing.checkout_requested`. Cada linha tem `ActorUserId` (humano, do contexto autenticado — nunca do body), `TenantId` (nulo para ação de catálogo global), `CorrelationId` e um `Details` JSON estruturado com ids e códigos — nunca token, URL de checkout, payload do gateway, senha ou PII desnecessária. A linha de auditoria é gravada na mesma transação da mutação: operação revertida não deixa trilha; mudança sem diff não gera evento; retry idempotente de checkout/webhook não duplica. Transições de subscription feitas por sistema ficam em `SubscriptionEvent`. Retenção ainda não definida.
+
 ## Verificação por fase
 
 Cada fase revisará autenticação/autorização aplicável, tenant isolation, IDOR, validação, exposição em logs e testes negativos. A F14 consolida hardening, rate limits, backup/restore, observabilidade e revisão de produção; isso não adia controles essenciais das fases anteriores.
