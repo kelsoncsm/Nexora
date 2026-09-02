@@ -5,6 +5,7 @@ public sealed class CustomerAuthorizationTests
  [Fact] public async Task PermissionsAreTenantScopedAndIdorIsHidden()
  {
   await using var f=new ApiFactory();var a=f.CreateClient();var b=f.CreateClient();var outsider=f.CreateClient();
+  await TestFeatureCatalog.GrantAllModulesAsync(f);
   var aGlobal=await Register(a,"multi@nexora.test");var bGlobal=await Register(b,"ownerb@nexora.test");var outsiderToken=await Register(outsider,"outside@nexora.test");
   var ta=await CreateTenant(a,aGlobal,"tenant-a6");var tb=await CreateTenant(b,bGlobal,"tenant-b6");
   await using(var scope=f.Services.CreateAsyncScope()){var db=scope.ServiceProvider.GetRequiredService<NexoraDbContext>();var user=await db.Users.SingleAsync(x=>x.NormalizedEmail=="MULTI@NEXORA.TEST");var noAccess=new TenantRole(tb,"VIEWER","No customer access",false);db.TenantRoles.Add(noAccess);db.TenantUsers.Add(new TenantUser(tb,user.Id,noAccess.Id,DateTimeOffset.UtcNow));await db.SaveChangesAsync();}

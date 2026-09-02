@@ -1,4 +1,6 @@
+using Nexora.Api.Plans;
 using Nexora.Application.Customers;
+using Nexora.Application.Plans;
 using Nexora.Application.Tenancy;
 
 namespace Nexora.Api.Customers;
@@ -7,7 +9,7 @@ public static class CustomerEndpoints
 {
     public static IEndpointRouteBuilder MapCustomerEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var customers = endpoints.MapGroup("/api/v1/customers").WithTags("Customers");
+        var customers = endpoints.MapGroup("/api/v1/customers").WithTags("Customers").RequireFeature(FeatureCodes.Customers);
 
         customers.MapGet(
                 "/",

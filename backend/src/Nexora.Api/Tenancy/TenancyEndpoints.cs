@@ -13,9 +13,11 @@ public static class TenancyEndpoints
         endpoints.MapGet("/api/v1/t/{tenantSlug}", ResolvePublicAsync).AllowAnonymous().WithTags("Tenancy");
         endpoints.MapPost("/api/v1/tenants", CreateAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapPost("/api/v1/t/{tenantSlug}/session", SelectSessionAsync).RequireAuthorization().WithTags("Tenancy");
+        endpoints.MapGet("/api/v1/me/tenants", GetMyTenantsAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapGet("/api/v1/tenant/members", GetMembersAsync).RequireAuthorization();
         endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync).RequireAuthorization();
-        endpoints.MapPatch("/api/v1/tenant/members/{membershipId:guid}/deactivate", DeactivateAsync).RequireAuthorization();
+        endpoints.MapPatch("/api/v1/tenant/members/{membershipId:guid}/deactivate", DeactivateAsync)
+            .RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
 
         var admin = endpoints.MapGroup("/api/v1/tenant").RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
         admin.MapGet("/", GetProfileAsync);
@@ -95,6 +97,9 @@ public static class TenancyEndpoints
         context.Response.Cookies.Append(RefreshCookie, session.RefreshToken, CookieOptions(context));
         return Results.Ok(new { session.AccessToken, session.AccessTokenExpiresAt });
     }
+
+    private static async Task<IResult> GetMyTenantsAsync(ClaimsPrincipal principal, ITenancyService service, CancellationToken ct) =>
+        Results.Ok(await service.GetUserTenantsAsync(UserId(principal), ct));
 
     private static async Task<IResult> GetMembersAsync(ITenantContext tenant, ITenancyService service, CancellationToken ct) =>
         tenant.IsAvailable ? Results.Ok(await service.GetMembersAsync(tenant.TenantId, ct)) : Results.Unauthorized();

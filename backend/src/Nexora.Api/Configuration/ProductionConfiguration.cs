@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Nexora.Api.Configuration;
 
 public static class ProductionConfiguration
@@ -23,8 +25,37 @@ public static class ProductionConfiguration
         if (string.IsNullOrWhiteSpace(allowedHosts) || allowedHosts is "*" or "localhost" || allowedHosts.Contains("__", StringComparison.Ordinal))
             errors.Add("AllowedHosts must explicitly identify the production API host.");
 
+        ValidateReverseProxy(configuration, errors);
+
         if (errors.Count > 0)
             throw new InvalidOperationException("Invalid Production configuration: " + string.Join(" ", errors));
+    }
+
+    /// <summary>
+    /// In Production the API runs behind a reverse proxy (ingress) and relies on forwarded headers for
+    /// the client IP (rate limiting, audit) and scheme (HTTPS redirect). Without an explicit list of
+    /// trusted proxies the forwarded-headers middleware either ignores the headers (all traffic collapses
+    /// to a single IP) or, misconfigured, trusts a spoofable <c>X-Forwarded-For</c>. Require at least one
+    /// trusted proxy address or network and reject entries that do not parse.
+    /// </summary>
+    private static void ValidateReverseProxy(IConfiguration configuration, List<string> errors)
+    {
+        var proxies = configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
+        var networks = configuration.GetSection("ReverseProxy:KnownNetworks").Get<string[]>() ?? [];
+
+        if (proxies.Length == 0 && networks.Length == 0)
+        {
+            errors.Add("ReverseProxy:KnownProxies or ReverseProxy:KnownNetworks must list the trusted proxy in Production.");
+            return;
+        }
+
+        var invalidProxies = proxies.Where(x => !IPAddress.TryParse(x, out _)).ToArray();
+        if (invalidProxies.Length > 0)
+            errors.Add($"ReverseProxy:KnownProxies has invalid IP addresses: {string.Join(", ", invalidProxies)}.");
+
+        var invalidNetworks = networks.Where(x => !System.Net.IPNetwork.TryParse(x, out _)).ToArray();
+        if (invalidNetworks.Length > 0)
+            errors.Add($"ReverseProxy:KnownNetworks has invalid CIDR ranges: {string.Join(", ", invalidNetworks)}.");
     }
 
     private static void Require(string? value, string name, List<string> errors, int minimumLength = 1)

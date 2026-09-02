@@ -1000,11 +1000,12 @@ Criar:
 - PlanFeature;
 - limites;
 - overrides;
-- resolução de feature.
+- resolução de feature;
+- enforcement em runtime (endpoint filter + limites nos serviços de criação) — ver ADR-0019.
 
 Critério:
 
-O acesso aos módulos é controlado por plano/configuração.
+O acesso aos módulos é controlado por plano/configuração. **Atendido em runtime** (ADR-0019): módulos gateados por `RequireFeature`, limites verificados na criação, feature ausente → 403 `feature_not_in_plan`, limite → 409 `plan_limit_reached`.
 
 ---
 

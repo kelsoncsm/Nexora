@@ -1,8 +1,9 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, UserTenant } from '../../core/auth/auth.service';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { NxButton, NxCard, NxEmptyState, NxStatCard } from '../../shared/ui';
 
 interface OperationalReport {
   customers?: number;
@@ -11,7 +12,7 @@ interface OperationalReport {
 
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink],
+  imports: [RouterLink, NxButton, NxCard, NxEmptyState, NxStatCard],
   templateUrl: './home-page.html',
 })
 export class HomePage {
@@ -24,6 +25,11 @@ export class HomePage {
   readonly state = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
   readonly loading = computed(() => this.state() === 'loading');
   readonly error = signal('');
+
+  /** Companies the user can re-enter without typing a slug (shown when no tenant is active). */
+  readonly tenants = signal<UserTenant[]>([]);
+  readonly tenantsState = signal<'loading' | 'ready' | 'error'>('loading');
+  readonly busySlug = signal<string | null>(null);
 
   readonly firstName = computed(() => {
     const label = this.auth.userLabel();
@@ -40,6 +46,18 @@ export class HomePage {
   constructor() {
     effect(() => {
       if (this.auth.tenantId() && this.state() === 'idle') this.loadReport();
+    });
+    if (!this.auth.tenantId()) this.loadTenants();
+  }
+
+  private loadTenants(): void {
+    this.tenantsState.set('loading');
+    this.auth.listMyTenants().subscribe({
+      next: (tenants) => {
+        this.tenants.set(tenants);
+        this.tenantsState.set('ready');
+      },
+      error: () => this.tenantsState.set('error'),
     });
   }
 
@@ -69,14 +87,19 @@ export class HomePage {
   }
 
   select(slug: string): void {
-    if (!slug?.trim()) {
+    const normalized = slug?.trim();
+    if (!normalized) {
       this.error.set('Informe o slug da empresa.');
       return;
     }
     this.error.set('');
-    this.auth.selectTenant(slug.trim()).subscribe({
+    this.busySlug.set(normalized);
+    this.auth.selectTenant(normalized).subscribe({
       next: () => void this.router.navigateByUrl('/'),
-      error: () => this.error.set('Não foi possível abrir esta empresa. Verifique o slug.'),
+      error: () => {
+        this.busySlug.set(null);
+        this.error.set('Não foi possível abrir esta empresa. Verifique o slug.');
+      },
     });
   }
   onboarding(): void {

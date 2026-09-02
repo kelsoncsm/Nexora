@@ -1,3 +1,5 @@
+using Nexora.Api.Plans;
+using Nexora.Application.Plans;
 using Nexora.Application.Scheduling;
 using Nexora.Application.Tenancy;
 
@@ -7,7 +9,7 @@ internal static class WorkingHoursEndpoints
 {
     public static void MapWorkingHoursEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var working = endpoints.MapGroup("/api/v1/working-hours").WithTags("Scheduling");
+        var working = endpoints.MapGroup("/api/v1/working-hours").WithTags("Scheduling").RequireFeature(FeatureCodes.Scheduling);
 
         working.MapGet(
                 "/",

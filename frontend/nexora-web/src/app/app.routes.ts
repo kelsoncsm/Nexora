@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { tenantGuard } from './core/auth/tenant.guard';
+import { featureGuard } from './core/auth/feature.guard';
 import { AuthPage } from './features/identity/auth-page';
 import { HomePage } from './features/identity/home-page';
+import { TenantSelectPage } from './features/identity/tenant-select-page';
 import { ProfilePage } from './features/identity/profile-page';
 import { platformAdminGuard } from './core/auth/platform-admin.guard';
 import { AdminPage } from './features/administration/admin-page';
@@ -26,6 +28,7 @@ export const routes: Routes = [
   { path: '', component: HomePage, canActivate: [authGuard] },
   { path: 'login', component: AuthPage, data: { mode: 'login' } },
   { path: 'cadastro', component: AuthPage, data: { mode: 'register' } },
+  { path: 'selecionar-empresa', component: TenantSelectPage, canActivate: [authGuard] },
   { path: 'onboarding', component: OnboardingPage, canActivate: [authGuard] },
   { path: 'configuracao-inicial', component: VerticalSetupPage, canActivate: [authGuard, tenantGuard] },
   { path: 'admin', component: AdminPage, canActivate: [platformAdminGuard] },
@@ -33,11 +36,11 @@ export const routes: Routes = [
   { path: 'admin/billing', component: BillingAdminPage, canActivate: [platformAdminGuard] },
   { path: 'admin/relatorios', component: ReportsPage, data: { platform: true }, canActivate: [platformAdminGuard] },
   { path: 'assinatura', component: BillingPage, canActivate: [authGuard, tenantGuard] },
-  { path: 'clientes', component: CustomerPage, canActivate: [authGuard, tenantGuard] },
-  { path: 'profissionais', component: CatalogPage, data: { kind: 'professionals' }, canActivate: [authGuard, tenantGuard] },
-  { path: 'servicos', component: CatalogPage, data: { kind: 'services' }, canActivate: [authGuard, tenantGuard] },
-  { path: 'agenda', component: SchedulePage, canActivate: [authGuard, tenantGuard] },
-  { path: 'relatorios', component: ReportsPage, canActivate: [authGuard, tenantGuard] },
+  { path: 'clientes', component: CustomerPage, canActivate: [authGuard, tenantGuard, featureGuard('CUSTOMERS')] },
+  { path: 'profissionais', component: CatalogPage, data: { kind: 'professionals' }, canActivate: [authGuard, tenantGuard, featureGuard('PROFESSIONALS')] },
+  { path: 'servicos', component: CatalogPage, data: { kind: 'services' }, canActivate: [authGuard, tenantGuard, featureGuard('SERVICES')] },
+  { path: 'agenda', component: SchedulePage, canActivate: [authGuard, tenantGuard, featureGuard('SCHEDULING')] },
+  { path: 'relatorios', component: ReportsPage, canActivate: [authGuard, tenantGuard, featureGuard('REPORTS')] },
   { path: 'equipe', component: TeamPage, canActivate: [authGuard, tenantGuard] },
   { path: 'configuracoes', component: SettingsHubPage, canActivate: [authGuard, tenantGuard] },
   { path: 'empresa', component: EmpresaPage, canActivate: [authGuard, tenantGuard] },

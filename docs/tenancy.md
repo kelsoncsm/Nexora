@@ -24,6 +24,8 @@ O `TenantSlug` é um identificador público de resolução, não uma autoridade 
 
 A resolução pública permanece desacoplada do isolamento do domínio para permitir futuramente subdomínios ou domínios customizados. Essas estratégias não fazem parte da F3.
 
+Um usuário autenticado pode listar as próprias empresas ativas em `GET /api/v1/me/tenants` (id, nome, slug, papel) para reentrar em um tenant sem digitar o slug. O endpoint só devolve vínculos ativos de tenants ativos e nunca os de outro usuário. A seleção efetiva continua sendo feita por `POST /api/v1/t/{tenantSlug}/session`, que revalida a associação e reemite a sessão; o slug permanece apenas chave de resolução.
+
 ## Leitura e escrita
 
 - Toda query tenant-scoped inclui o tenant atual, inclusive busca por ID.

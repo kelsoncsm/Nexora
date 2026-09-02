@@ -1,4 +1,6 @@
+using Nexora.Api.Plans;
 using Nexora.Application.Catalog;
+using Nexora.Application.Plans;
 using Nexora.Application.Tenancy;
 
 namespace Nexora.Api.Catalog;
@@ -7,7 +9,7 @@ internal static class ServiceEndpoints
 {
     public static void MapServiceEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var services = endpoints.MapGroup("/api/v1/services").WithTags("Services");
+        var services = endpoints.MapGroup("/api/v1/services").WithTags("Services").RequireFeature(FeatureCodes.Services);
 
         services.MapGet(
                 "/",

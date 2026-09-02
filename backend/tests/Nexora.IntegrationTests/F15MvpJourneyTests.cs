@@ -131,6 +131,12 @@ public sealed class F15MvpJourneyTests
         plan.ConfigureCommercialAvailability(true, true);
         db.AddRange(segment, plan, new PlanPrice(plan.Id, BillingInterval.Monthly, "BRL", 49.90m, now));
         await db.SaveChangesAsync();
+        // The trial plan includes every operational module the journey exercises (ADR-0019).
+        await TestFeatureCatalog.SeedFeaturesAsync(db);
+        var features = await db.Features.Where(x => TestFeatureCatalog.ModuleCodes.Contains(x.Code)).ToListAsync();
+        foreach (var feature in features)
+            plan.Features.Add(new PlanFeature(plan.Id, feature.Id, true, null));
+        await db.SaveChangesAsync();
         return (segment.Id, plan.Id);
     }
 

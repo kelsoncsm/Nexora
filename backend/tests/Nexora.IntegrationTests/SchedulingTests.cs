@@ -25,7 +25,7 @@ public sealed class SchedulingTests
     [Fact]
     public async Task CreatesWithServiceDurationAndRejectsConflictBlockUnavailableAndCrossTenantIdor()
     {
-        await using var factory=new ApiFactory();var a=factory.CreateClient();var b=factory.CreateClient();var globalA=await Register(a,"schedule-a@nexora.test");var globalB=await Register(b,"schedule-b@nexora.test");
+        await using var factory=new ApiFactory();var a=factory.CreateClient();var b=factory.CreateClient();await TestFeatureCatalog.GrantAllModulesAsync(factory);var globalA=await Register(a,"schedule-a@nexora.test");var globalB=await Register(b,"schedule-b@nexora.test");
         await CreateTenant(a,globalA,"schedule-a","America/Sao_Paulo");await CreateTenant(b,globalB,"schedule-b","America/New_York");a.DefaultRequestHeaders.Authorization=new("Bearer",await Select(a,globalA,"schedule-a"));b.DefaultRequestHeaders.Authorization=new("Bearer",await Select(b,globalB,"schedule-b"));
         var customer=await Post<IdDto>(a,"/api/v1/customers",new{name="Cliente",phone="1",email="c@test.local",birthDate=(string?)null,notes=""});var professional=await Post<IdDto>(a,"/api/v1/professionals",new{name="Ana",email="a@test.local",phone="1",isActive=true});var service=await Post<IdDto>(a,"/api/v1/services",new{name="Consulta",description="",durationMinutes=30,price=10,isActive=true});(await a.PutAsync($"/api/v1/professionals/{professional.Id}/services/{service.Id}",null)).EnsureSuccessStatusCode();
         (await a.PutAsJsonAsync("/api/v1/working-hours",new{professionalId=professional.Id,dayOfWeek="Tuesday",startLocal="09:00:00",endLocal="18:00:00"})).EnsureSuccessStatusCode();

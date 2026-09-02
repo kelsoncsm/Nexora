@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Nexora.Application.Identity;
+using Nexora.Application.Plans;
+using Nexora.Application.Tenancy;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Nexora.Api.Identity;
@@ -55,13 +57,22 @@ public static class IdentityEndpoints
     }
 
     private static async Task<IResult> GetMeAsync(ClaimsPrincipal principal, IIdentityService service,
-        CancellationToken cancellationToken)
+        ITenantContext tenant, IFeatureAccessService features, CancellationToken cancellationToken)
     {
         var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? principal.FindFirstValue("sub");
-        return Guid.TryParse(subject, out var userId) && await service.GetUserAsync(userId, cancellationToken) is { } user
-            ? Results.Ok(user)
-            : Results.Unauthorized();
+        if (!Guid.TryParse(subject, out var userId) || await service.GetUserAsync(userId, cancellationToken) is not { } user)
+            return Results.Unauthorized();
+
+        // Inside a tenant session, surface the effective modules so the SPA can hide menu/routes.
+        // The backend endpoint filters remain the authority (ADR-0019).
+        if (!tenant.IsAvailable)
+            return Results.Ok(new { user.Id, user.Email, user.Permissions });
+
+        var effective = new Dictionary<string, FeatureAccess>(StringComparer.Ordinal);
+        foreach (var code in FeatureCodes.All)
+            effective[code] = await features.ResolveAsync(tenant.TenantId, code, cancellationToken);
+        return Results.Ok(new { user.Id, user.Email, user.Permissions, Features = effective });
     }
 
     private static object ToResponse(AuthenticatedSession session) => new

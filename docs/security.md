@@ -38,6 +38,8 @@ Na F4, endpoints `/api/v1/admin/...` exigem a policy `PlatformAdmin`, baseada em
 
 Na F6, autorização operacional usa `TenantRole` e capabilities globais estáveis. O middleware revalida vínculo e permissões no tenant indicado pela claim emitida pelo servidor, removendo permissions globais da identidade tenant-scoped antes de aplicar policies.
 
+A feature aplicável é aplicada em runtime (ADR-0019): grupos de rotas de módulo passam por um endpoint filter `RequireFeature` que resolve `IFeatureAccessService.ResolveAsync` e rejeita com `403 feature_not_in_plan` quando o plano/override não inclui o módulo; limites de plano são verificados na criação (`409 plan_limit_reached`). Feature não substitui permissão — as duas camadas são independentes.
+
 ## Controles mínimos
 
 - isolamento tenant e proteção contra IDOR;
@@ -61,4 +63,4 @@ Eventos críticos usam registros estruturados, não apenas texto livre. Exemplos
 
 Cada fase revisará autenticação/autorização aplicável, tenant isolation, IDOR, validação, exposição em logs e testes negativos. A F14 consolida hardening, rate limits, backup/restore, observabilidade e revisão de produção; isso não adia controles essenciais das fases anteriores.
 
-Na configuração `Production`, a API falha no startup sem secrets/providers reais, hosts e origens HTTPS explícitos. HSTS, headers de segurança, proxy confiável e rate limits segmentados são aplicados no pipeline HTTP. Segredos produtivos pertencem ao Key Vault e não ao Git, bundle Angular, imagem ou YAML.
+Na configuração `Production`, a API falha no startup sem secrets/providers reais, hosts e origens HTTPS explícitos e sem pelo menos um proxy reverso confiável (`ReverseProxy:KnownProxies` ou `ReverseProxy:KnownNetworks`) válido. HSTS, headers de segurança, proxy confiável e rate limits segmentados são aplicados no pipeline HTTP. Segredos produtivos pertencem ao Key Vault e não ao Git, bundle Angular, imagem ou YAML.

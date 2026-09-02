@@ -115,11 +115,12 @@ export class App {
     ];
     if (this.auth.tenantId()) {
       const principal = groups[0].items;
-      if (this.has('appointments.read')) principal.push({ label: 'Agenda', route: '/agenda', icon: 'i-calendar' });
-      if (this.has('customers.read')) principal.push({ label: 'Clientes', route: '/clientes', icon: 'i-users' });
-      if (this.has('professionals.read')) principal.push({ label: 'Profissionais', route: '/profissionais', icon: 'i-briefcase' });
-      if (this.has('services.read')) principal.push({ label: 'Serviços', route: '/servicos', icon: 'i-scissors' });
-      if (this.has('reports.read')) principal.push({ label: 'Relatórios', route: '/relatorios', icon: 'i-chart' });
+      // An item shows only when the role grants the permission AND the plan includes the module.
+      if (this.allowed('appointments.read', 'SCHEDULING')) principal.push({ label: 'Agenda', route: '/agenda', icon: 'i-calendar' });
+      if (this.allowed('customers.read', 'CUSTOMERS')) principal.push({ label: 'Clientes', route: '/clientes', icon: 'i-users' });
+      if (this.allowed('professionals.read', 'PROFESSIONALS')) principal.push({ label: 'Profissionais', route: '/profissionais', icon: 'i-briefcase' });
+      if (this.allowed('services.read', 'SERVICES')) principal.push({ label: 'Serviços', route: '/servicos', icon: 'i-scissors' });
+      if (this.allowed('reports.read', 'REPORTS')) principal.push({ label: 'Relatórios', route: '/relatorios', icon: 'i-chart' });
       groups.push({
         label: 'GESTÃO',
         items: [
@@ -156,14 +157,20 @@ export class App {
         this.http
           .get<ShellPlan>(`${this.cfg.apiBaseUrl}/subscription`)
           .subscribe({ next: (x) => this.plan.set(x), error: () => this.plan.set(null) });
+        this.auth.loadFeatures().subscribe();
       } else {
         this.plan.set(null);
+        this.auth.clearFeatures();
       }
     });
   }
 
   has(permission: string) {
     return this.auth.permissions().includes(permission);
+  }
+
+  private allowed(permission: string, feature: string) {
+    return this.has(permission) && this.auth.hasFeature(feature);
   }
 
   toggleNav() {

@@ -1,4 +1,6 @@
+using Nexora.Api.Plans;
 using Nexora.Application.Catalog;
+using Nexora.Application.Plans;
 using Nexora.Application.Tenancy;
 
 namespace Nexora.Api.Catalog;
@@ -7,7 +9,7 @@ internal static class ProfessionalEndpoints
 {
     public static void MapProfessionalEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var professionals = endpoints.MapGroup("/api/v1/professionals").WithTags("Professionals");
+        var professionals = endpoints.MapGroup("/api/v1/professionals").WithTags("Professionals").RequireFeature(FeatureCodes.Professionals);
 
         professionals.MapGet(
                 "/",

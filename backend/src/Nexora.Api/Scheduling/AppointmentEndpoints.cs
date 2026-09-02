@@ -1,3 +1,5 @@
+using Nexora.Api.Plans;
+using Nexora.Application.Plans;
 using Nexora.Application.Scheduling;
 using Nexora.Application.Tenancy;
 using Nexora.Domain.Scheduling;
@@ -8,7 +10,7 @@ internal static class AppointmentEndpoints
 {
     public static void MapAppointmentEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var appointments = endpoints.MapGroup("/api/v1/appointments").WithTags("Scheduling");
+        var appointments = endpoints.MapGroup("/api/v1/appointments").WithTags("Scheduling").RequireFeature(FeatureCodes.Scheduling);
 
         appointments.MapGet(
                 "/",

@@ -14,6 +14,7 @@ public sealed class VerticalSetupTests
     public async Task TemplateIsDataDrivenOptionalIdempotentAndTenantScoped()
     {
         await using var factory = new ApiFactory();
+        await TestFeatureCatalog.GrantAllModulesAsync(factory);
         var client = factory.CreateClient();
         var token = await Register(client, "vertical@nexora.test");
         var tenantId = await CreateTenant(client, token, "vertical-shop");

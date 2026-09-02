@@ -1,0 +1,51 @@
+<div class="nx-dash">
+  <div class="nx-dash-hero">
+    <div>
+      <h1>Escolha a empresa</h1>
+      <p>Você tem acesso a mais de uma empresa. Selecione com qual quer trabalhar agora.</p>
+    </div>
+  </div>
+
+  @if (state() === 'loading') {
+    <nx-card>
+      <p class="nx-form-hint">Carregando suas empresas…</p>
+    </nx-card>
+  } @else if (state() === 'error') {
+    <nx-card>
+      <nx-empty-state
+        icon="i-building"
+        title="Não foi possível carregar suas empresas"
+        description="Tente novamente a partir da tela inicial."
+      >
+        <button type="button" nx-button (click)="retry()">Voltar ao início</button>
+      </nx-empty-state>
+    </nx-card>
+  } @else {
+    <nx-card heading="Suas empresas" icon="i-building">
+      <ul class="nx-panel-list">
+        @for (t of tenants(); track t.id) {
+          <li>
+            <div>
+              <strong>{{ t.name }}</strong><br />
+              <span>{{ t.slug }} · {{ t.roleName }}</span>
+            </div>
+            <button
+              type="button"
+              nx-button
+              size="sm"
+              [loading]="busySlug() === t.slug"
+              [disabled]="busySlug() !== null"
+              (click)="open(t.slug)"
+            >
+              Entrar
+            </button>
+          </li>
+        }
+      </ul>
+    </nx-card>
+
+    <div class="nx-dash-actions">
+      <button type="button" nx-button variant="secondary" (click)="createCompany()">Criar nova empresa</button>
+    </div>
+  }
+</div>

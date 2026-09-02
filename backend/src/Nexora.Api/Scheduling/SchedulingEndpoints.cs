@@ -1,3 +1,5 @@
+using Nexora.Api.Plans;
+using Nexora.Application.Plans;
 using Nexora.Application.Scheduling;
 using Nexora.Application.Tenancy;
 
@@ -9,6 +11,7 @@ public static class SchedulingEndpoints
     {
         endpoints.MapGet("/api/v1/scheduling/context", GetContextAsync)
             .RequireAuthorization(TenantPermissions.AppointmentsRead)
+            .RequireFeature(FeatureCodes.Scheduling)
             .WithTags("Scheduling");
 
         endpoints.MapWorkingHoursEndpoints();

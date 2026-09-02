@@ -28,16 +28,44 @@ export class AuthPage {
     if (this.form.invalid) return;
     this.busy.set(true);
     this.error.set(false);
-    const request =
-      this.mode() === 'login'
-        ? this.auth.login(this.form.getRawValue())
-        : this.auth.register(this.form.getRawValue());
-    request.subscribe({
-      next: () => void this.router.navigateByUrl(this.mode() === 'register' ? '/onboarding' : '/'),
-      error: () => {
-        this.busy.set(false);
-        this.error.set(true);
-      },
+    if (this.mode() === 'register') {
+      this.auth.register(this.form.getRawValue()).subscribe({
+        next: () => void this.router.navigateByUrl('/onboarding'),
+        error: () => this.fail(),
+      });
+      return;
+    }
+    this.auth.login(this.form.getRawValue()).subscribe({
+      next: () => this.enterAfterLogin(),
+      error: () => this.fail(),
     });
+  }
+
+  /**
+   * After a successful login, resolve where the user lands: their only company (auto-selected),
+   * a company picker for multiple memberships, or the home screen when they have none. The tenant
+   * is always selected server-side against the user's real memberships — the slug is never trusted.
+   */
+  private enterAfterLogin(): void {
+    this.auth.listMyTenants().subscribe({
+      next: (tenants) => {
+        if (tenants.length === 1) {
+          this.auth.selectTenant(tenants[0].slug).subscribe({
+            next: () => void this.router.navigateByUrl('/'),
+            error: () => void this.router.navigateByUrl('/'),
+          });
+        } else if (tenants.length > 1) {
+          void this.router.navigateByUrl('/selecionar-empresa');
+        } else {
+          void this.router.navigateByUrl('/');
+        }
+      },
+      error: () => void this.router.navigateByUrl('/'),
+    });
+  }
+
+  private fail(): void {
+    this.busy.set(false);
+    this.error.set(true);
   }
 }

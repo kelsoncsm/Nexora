@@ -34,6 +34,13 @@ Recursos de outro tenant não devem ser confirmados por diferenças observáveis
 
 Erros seguirão um contrato consistente compatível com Problem Details, contendo código estável, título, status, detalhe seguro, identificador de correlação e erros de validação quando aplicável. Stack traces, SQL, secrets e detalhes internos não são retornados em produção.
 
+Códigos estáveis de enforcement de plano (ADR-0019):
+
+| Código | Status | Quando |
+|---|---|---|
+| `feature_not_in_plan` | `403 Forbidden` | o plano do tenant (ou um override) não inclui o módulo; extensão `feature` identifica o código |
+| `plan_limit_reached` | `409 Conflict` | criação que ultrapassaria o limite do plano; extensões `feature`, `limit`, `current` |
+
 ## Listagens
 
 Listagens potencialmente grandes são paginadas. Parâmetros de página/tamanho têm defaults e limites configurados; filtros e ordenação usam campos permitidos, documentados e validados. A resposta informa os metadados necessários sem executar contagens caras por padrão sem justificativa.

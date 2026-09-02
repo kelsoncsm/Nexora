@@ -1,3 +1,5 @@
+using Nexora.Api.Plans;
+using Nexora.Application.Plans;
 using Nexora.Application.Scheduling;
 using Nexora.Application.Tenancy;
 
@@ -7,7 +9,7 @@ internal static class BlockedPeriodEndpoints
 {
     public static void MapBlockedPeriodEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var blocks = endpoints.MapGroup("/api/v1/blocked-periods").WithTags("Scheduling");
+        var blocks = endpoints.MapGroup("/api/v1/blocked-periods").WithTags("Scheduling").RequireFeature(FeatureCodes.Scheduling);
 
         blocks.MapGet(
                 "/",

@@ -26,6 +26,7 @@ public sealed class ReportsProductivityPostgresTests
         using var client = factory.CreateClient();
         var token = await Register(client, $"{slug}@nexora.test");
         var tenantId = await CreateTenant(client, token, slug);
+        await TestFeatureCatalog.GrantAllModulesToTenantAsync(factory, tenantId);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Select(client, token, slug));
 
         var now = DateTimeOffset.UtcNow;
@@ -78,7 +79,8 @@ public sealed class ReportsProductivityPostgresTests
         await factory.InitializeAsync();
         using var client = factory.CreateClient();
         var token = await Register(client, $"{slug}@nexora.test");
-        await CreateTenant(client, token, slug);
+        var tenantId = await CreateTenant(client, token, slug);
+        await TestFeatureCatalog.GrantAllModulesToTenantAsync(factory, tenantId);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Select(client, token, slug));
 
         var from = Uri.EscapeDataString(DateTimeOffset.UtcNow.AddDays(-7).ToString("O"));

@@ -13,6 +13,7 @@ import { EmpresaPage } from './features/tenant/empresa-page';
 import { RolesPage } from './features/tenant/roles-page';
 import { PermissionsPage } from './features/tenant/permissions-page';
 import { SettingsHubPage } from './features/tenant/settings-hub-page';
+import { TenantSelectPage } from './features/identity/tenant-select-page';
 
 function pathsOf() { return routes.map(r => r.path); }
 
@@ -47,6 +48,19 @@ describe('app routes', () => {
       const route = routes.find(r => r.path === path)!;
       expect(route.component).toBe(component);
       expect(route.canActivate?.length).toBe(2); // authGuard + tenantGuard
+    }
+  });
+
+  it('exposes the company picker behind the auth guard only', () => {
+    const route = routes.find(r => r.path === 'selecionar-empresa')!;
+    expect(route.component).toBe(TenantSelectPage);
+    expect(route.canActivate?.length).toBe(1); // authGuard only — no tenant yet
+  });
+
+  it('gates the module routes behind auth + tenant + feature guards', () => {
+    for (const path of ['clientes', 'profissionais', 'servicos', 'agenda', 'relatorios']) {
+      const route = routes.find(r => r.path === path)!;
+      expect(route.canActivate?.length).toBe(3); // authGuard + tenantGuard + featureGuard
     }
   });
 

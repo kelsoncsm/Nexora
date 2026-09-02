@@ -33,6 +33,13 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
 
     public async Task<IReadOnlyCollection<string>> GetPermissionsAsync(Guid tenantId,Guid userId,CancellationToken ct)=>await dbContext.TenantUsers.Where(x=>x.TenantId==tenantId&&x.UserId==userId&&x.IsActive&&x.Tenant.IsActive).SelectMany(x=>x.TenantRole.Permissions).Select(x=>x.PermissionKey).Distinct().ToArrayAsync(ct);
 
+    public async Task<IReadOnlyCollection<UserTenant>> GetUserTenantsAsync(Guid userId, CancellationToken ct) =>
+        await dbContext.TenantUsers
+            .Where(x => x.UserId == userId && x.IsActive && x.Tenant.IsActive)
+            .OrderBy(x => x.Tenant.Name)
+            .Select(x => new UserTenant(x.Tenant.Id, x.Tenant.Name, x.Tenant.Slug, x.TenantRole.Name))
+            .ToArrayAsync(ct);
+
     public Task<Guid?> ResolveMembershipTenantAsync(Guid userId, string slug, CancellationToken ct)
     {
         var normalized = NormalizeSlug(slug);
@@ -46,7 +53,7 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
 
     public async Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, CancellationToken ct)
     {
-        var canManage = await dbContext.TenantUsers.AnyAsync(x => x.TenantId == tenantId && x.UserId == actorUserId && x.IsActive && x.TenantRole.Permissions.Any(p=>p.PermissionKey==TenantPermissions.CustomersDelete), ct);
+        var canManage = await dbContext.TenantUsers.AnyAsync(x => x.TenantId == tenantId && x.UserId == actorUserId && x.IsActive && x.TenantRole.Permissions.Any(p=>p.PermissionKey==TenantPermissions.TenantManage), ct);
         if (!canManage) return false;
         var membership = await dbContext.TenantUsers.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.Id == membershipId, ct);
         if (membership is null) return false;

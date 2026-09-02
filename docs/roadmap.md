@@ -36,6 +36,7 @@ A F1 estabelece solution .NET, API, persistência EF Core/PostgreSQL sem entidad
 - F2/F3: parâmetros de token e mecanismo público de seleção do tenant;
 - F8: representação técnica e política de timezone/agendamento;
 - F9/F10: regras comerciais de assinatura e gateway do MVP;
+- F5: enforcement de plano/feature em runtime implementado (ADR-0019) — endpoint filter `RequireFeature`, limites nos serviços de criação, features efetivas no `GET /identity/me`. Catálogo comercial (planos, preços, limites) segue criado pelo Platform Admin.
 - F14 concluída em código: Azure/Bicep, CI/CD OIDC, hardening, observabilidade, migrations controladas e runbooks. Provisionamento real permanece pendente e não bloqueante.
 - F15 concluída: template orientado por configuração, segmento semeado por migration e setup inicial opcional e tenant-scoped para Barbearia/Salão.
 

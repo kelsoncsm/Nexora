@@ -17,6 +17,7 @@ public sealed class ReportTests
     public async Task TenantReportIsAuthorizedFilteredAndIsolated()
     {
         await using var factory = new ApiFactory();
+        await TestFeatureCatalog.GrantAllModulesAsync(factory);
         var tenantA = factory.CreateClient(); var tenantB = factory.CreateClient();
         var tokenA = await RegisterAsync(tenantA, "reports-a@nexora.test");
         var tokenB = await RegisterAsync(tenantB, "reports-b@nexora.test");

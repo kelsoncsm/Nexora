@@ -40,6 +40,16 @@ public sealed class GlobalExceptionHandler(
             AdministrationConflictException => (StatusCodes.Status409Conflict, exception.Message, []),
             PlanCatalogValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),
             PlanCatalogConflictException => (StatusCodes.Status409Conflict, exception.Message, []),
+            FeatureNotInPlanException feature => (StatusCodes.Status403Forbidden, "Feature not available in plan.",
+                new Dictionary<string, object?> { ["code"] = "feature_not_in_plan", ["feature"] = feature.FeatureCode }),
+            PlanLimitExceededException limit => (StatusCodes.Status409Conflict, "Plan limit reached.",
+                new Dictionary<string, object?>
+                {
+                    ["code"] = "plan_limit_reached",
+                    ["feature"] = limit.FeatureCode,
+                    ["limit"] = limit.Limit,
+                    ["current"] = limit.Current
+                }),
             CustomerValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),
             CatalogValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),
             SchedulingValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),

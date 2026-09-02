@@ -9,6 +9,7 @@ public sealed class CatalogIsolationTests
     public async Task CrudLinkValidationAndTenantIsolation()
     {
         await using var factory = new ApiFactory(); var a = factory.CreateClient(); var b = factory.CreateClient();
+        await TestFeatureCatalog.GrantAllModulesAsync(factory);
         var globalA = await Register(a, "catalog-a@nexora.test"); var globalB = await Register(b, "catalog-b@nexora.test");
         await CreateTenant(a, globalA, "catalog-a"); await CreateTenant(b, globalB, "catalog-b");
         a.DefaultRequestHeaders.Authorization = new("Bearer", await Select(a, globalA, "catalog-a"));

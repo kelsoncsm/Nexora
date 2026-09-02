@@ -1,3 +1,5 @@
+using Nexora.Api.Plans;
+using Nexora.Application.Plans;
 using Nexora.Application.Reports;
 using Nexora.Application.Tenancy;
 
@@ -9,7 +11,7 @@ public static class ReportEndpoints
     {
         endpoints.MapGet("/api/v1/reports/overview", (DateTimeOffset from, DateTimeOffset to, IReportService service, CancellationToken ct) =>
                 service.GetTenantReportAsync(from, to, ct))
-            .RequireAuthorization(TenantPermissions.ReportsRead).WithTags("Reports");
+            .RequireAuthorization(TenantPermissions.ReportsRead).RequireFeature(FeatureCodes.Reports).WithTags("Reports");
         endpoints.MapGet("/api/v1/admin/reports/overview", (DateTimeOffset from, DateTimeOffset to, IReportService service, CancellationToken ct) =>
                 service.GetPlatformReportAsync(from, to, ct))
             .RequireAuthorization("PlatformAdmin").WithTags("Platform Reports");

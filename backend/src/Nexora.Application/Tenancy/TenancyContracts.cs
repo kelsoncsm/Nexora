@@ -14,6 +14,8 @@ public interface ITenantContextInitializer
 
 public sealed record PublicTenant(Guid Id, string Name, string Slug, string TimeZoneId);
 public sealed record TenantMembership(Guid Id, Guid UserId, string Email, string Role, Guid RoleId, bool IsActive);
+/// <summary>An active company the authenticated user belongs to, used to re-enter a tenant after login.</summary>
+public sealed record UserTenant(Guid Id, string Name, string Slug, string RoleName);
 public sealed record TenantProfile(Guid Id, string Name, string Slug, string TimeZoneId, bool IsActive, DateTimeOffset CreatedAt);
 public sealed record TenantRoleView(Guid Id, string Name, string Description, bool IsSystem, int MemberCount, IReadOnlyCollection<string> Permissions);
 public sealed record TenantPermissionDescriptor(string Key, string Module, string Action);
@@ -29,6 +31,7 @@ public interface ITenancyService
     Task<PublicTenant> CreateAsync(Guid userId, string name, string slug, string timeZoneId, CancellationToken cancellationToken);
     Task<bool> ValidateMembershipAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<string>> GetPermissionsAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<UserTenant>> GetUserTenantsAsync(Guid userId, CancellationToken cancellationToken);
     Task<Guid?> ResolveMembershipTenantAsync(Guid userId, string slug, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<TenantMembership>> GetMembersAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, CancellationToken cancellationToken);

@@ -35,6 +35,58 @@ public sealed class ProductionHardeningTests
     }
 
     [Fact]
+    public void ProductionRequiresATrustedReverseProxyToBeConfigured()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(ValidProductionValues()).Build();
+        var exception = Assert.Throws<InvalidOperationException>(() => configuration.ValidateProductionConfiguration(new StubEnvironment("Production")));
+        Assert.Contains("ReverseProxy:KnownProxies or ReverseProxy:KnownNetworks", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionRejectsUnparseableReverseProxyEntries()
+    {
+        var values = ValidProductionValues();
+        values["ReverseProxy:KnownProxies:0"] = "not-an-ip";
+        values["ReverseProxy:KnownNetworks:0"] = "10.0.0.0/notacidr";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        var exception = Assert.Throws<InvalidOperationException>(() => configuration.ValidateProductionConfiguration(new StubEnvironment("Production")));
+        Assert.Contains("ReverseProxy:KnownProxies has invalid IP addresses", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ReverseProxy:KnownNetworks has invalid CIDR ranges", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionAcceptsAnExplicitTrustedProxyNetwork()
+    {
+        var values = ValidProductionValues();
+        values["ReverseProxy:KnownNetworks:0"] = "10.0.0.0/8";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        var exception = Record.Exception(() => configuration.ValidateProductionConfiguration(new StubEnvironment("Production")));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ReverseProxyValidationIsSkippedOutsideProduction()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
+        Assert.Null(Record.Exception(() => configuration.ValidateProductionConfiguration(new StubEnvironment("Development"))));
+        Assert.Null(Record.Exception(() => configuration.ValidateProductionConfiguration(new StubEnvironment("Testing"))));
+    }
+
+    private static Dictionary<string, string?> ValidProductionValues() => new()
+    {
+        ["ConnectionStrings:NexoraDatabase"] = "Host=db;Database=nexora;Username=app;Password=secret;SSL Mode=Require",
+        ["Identity:SigningKey"] = "production-signing-key-with-more-than-32-characters",
+        ["Payments:MercadoPago:AccessToken"] = "mp-access-token",
+        ["Payments:MercadoPago:WebhookSecret"] = "mp-webhook-secret",
+        ["Email:FromAddress"] = "no-reply@nexora.app",
+        ["Email:ResendApiKey"] = "resend-api-key",
+        ["APPLICATIONINSIGHTS_CONNECTION_STRING"] = "InstrumentationKey=00000000-0000-0000-0000-000000000000",
+        ["Email:Provider"] = "Resend",
+        ["AllowedHosts"] = "api.nexora.app",
+        ["Cors:AllowedOrigins:0"] = "https://app.nexora.app",
+    };
+
+    [Fact]
     public async Task ReadinessDoesNotDependOnEmailOrPaymentProviders()
     {
         await using var factory=new ApiFactory();factory.PaymentGateway.CreateException=new InvalidOperationException("provider unavailable");factory.Services.GetRequiredService<Nexora.Infrastructure.Notifications.FakeEmailSender>().Behavior=Nexora.Infrastructure.Notifications.FakeEmailBehavior.Timeout;
