@@ -69,4 +69,17 @@ describe('App sidebar gating (permission AND feature)', () => {
     const items = navItems(buildAuth({ permissions: () => [], hasFeature: () => true }));
     expect(items).not.toContain('Clientes');
   });
+
+  it('shows team and billing only with tenant.manage (audit P2.1/P2.2)', () => {
+    const withManage = navItems(buildAuth({ permissions: () => ['tenant.manage'] }));
+    expect(withManage).toContain('Usuários e Equipe');
+    expect(withManage).toContain('Plano e Assinatura');
+  });
+
+  it('hides team and billing without tenant.manage, keeping Configurações', () => {
+    const withoutManage = navItems(buildAuth({ permissions: () => ['customers.read'] }));
+    expect(withoutManage).not.toContain('Usuários e Equipe');
+    expect(withoutManage).not.toContain('Plano e Assinatura');
+    expect(withoutManage).toContain('Configurações');
+  });
 });

@@ -14,8 +14,10 @@ public static class TenancyEndpoints
         endpoints.MapPost("/api/v1/tenants", CreateAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapPost("/api/v1/t/{tenantSlug}/session", SelectSessionAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapGet("/api/v1/me/tenants", GetMyTenantsAsync).RequireAuthorization().WithTags("Tenancy");
-        endpoints.MapGet("/api/v1/tenant/members", GetMembersAsync).RequireAuthorization();
-        endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync).RequireAuthorization();
+        // Listing members exposes every member's e-mail, role and status — a tenant-administrative
+        // read (audit P2.2), gated like role/permission/deactivate on tenant.manage.
+        endpoints.MapGet("/api/v1/tenant/members", GetMembersAsync).RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
+        endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync).RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
         endpoints.MapPatch("/api/v1/tenant/members/{membershipId:guid}/deactivate", DeactivateAsync)
             .RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
 

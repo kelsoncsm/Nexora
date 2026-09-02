@@ -7,13 +7,17 @@ internal static class TenantBillingEndpoints
 {
     public static void MapTenantBillingEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        // Billing and subscription are tenant-administrative surfaces (audit P2.1): viewing the
+        // subscription/invoices and starting a checkout require tenant.manage, like the rest of the
+        // tenant admin group. They are not feature-gated — an expired tenant with tenant.manage can
+        // still see and settle its subscription (ADR-0019 keeps billing off the RequireFeature map).
         endpoints.MapGet("/api/v1/subscription", GetSubscriptionAsync)
-            .RequireAuthorization(policy => policy.RequireClaim("tenant_id"))
+            .RequireAuthorization(TenantPermissions.TenantManage)
             .WithTags("Billing");
 
         var tenantBilling = endpoints
             .MapGroup("/api/v1/billing")
-            .RequireAuthorization(policy => policy.RequireClaim("tenant_id"))
+            .RequireAuthorization(TenantPermissions.TenantManage)
             .WithTags("Billing");
 
         tenantBilling.MapGet(

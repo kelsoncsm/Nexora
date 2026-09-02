@@ -31,6 +31,7 @@ export class BillingPage {
   private base = inject(APP_CONFIG).apiBaseUrl;
   invoices = signal<Invoice[]>([]);
   result = signal<Checkout | null>(null);
+  error = signal('');
   method = 'Pix';
   email = '';
   constructor() {
@@ -45,9 +46,18 @@ export class BillingPage {
         : 'warning';
   }
   load() {
-    this.http
-      .get<Invoice[]>(`${this.base}/billing/invoices`)
-      .subscribe((x) => this.invoices.set(x));
+    this.http.get<Invoice[]>(`${this.base}/billing/invoices`).subscribe({
+      next: (x) => {
+        this.invoices.set(x);
+        this.error.set('');
+      },
+      error: (e) =>
+        this.error.set(
+          e?.status === 403
+            ? 'Você não tem permissão para gerenciar a assinatura desta empresa.'
+            : 'Não foi possível carregar as cobranças.',
+        ),
+    });
   }
   checkout() {
     this.http
@@ -55,9 +65,17 @@ export class BillingPage {
         paymentMethod: this.method,
         payerEmail: this.email,
       })
-      .subscribe((x) => {
-        this.result.set(x);
-        this.load();
+      .subscribe({
+        next: (x) => {
+          this.result.set(x);
+          this.load();
+        },
+        error: (e) =>
+          this.error.set(
+            e?.status === 403
+              ? 'Você não tem permissão para iniciar um checkout.'
+              : 'Não foi possível criar o checkout.',
+          ),
       });
   }
 }

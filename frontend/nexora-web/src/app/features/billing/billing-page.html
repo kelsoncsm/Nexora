@@ -1,5 +1,9 @@
 <nx-page-header title="Plano e Assinatura" subtitle="Gere um checkout e acompanhe suas cobranças." />
 
+@if (error()) {
+  <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+}
+
 <div class="nx-grid nx-grid--2">
   <nx-card heading="Novo checkout" icon="i-card">
     <form (ngSubmit)="checkout()">

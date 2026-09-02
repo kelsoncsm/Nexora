@@ -121,14 +121,15 @@ export class App {
       if (this.allowed('professionals.read', 'PROFESSIONALS')) principal.push({ label: 'Profissionais', route: '/profissionais', icon: 'i-briefcase' });
       if (this.allowed('services.read', 'SERVICES')) principal.push({ label: 'Serviços', route: '/servicos', icon: 'i-scissors' });
       if (this.allowed('reports.read', 'REPORTS')) principal.push({ label: 'Relatórios', route: '/relatorios', icon: 'i-chart' });
-      groups.push({
-        label: 'GESTÃO',
-        items: [
+      const gestao = [{ label: 'Configurações', route: '/configuracoes', icon: 'i-gear' }];
+      // Listing members and viewing/managing billing require tenant.manage on the backend.
+      if (this.has('tenant.manage')) {
+        gestao.unshift(
           { label: 'Usuários e Equipe', route: '/equipe', icon: 'i-user' },
           { label: 'Plano e Assinatura', route: '/assinatura', icon: 'i-card' },
-          { label: 'Configurações', route: '/configuracoes', icon: 'i-gear' },
-        ],
-      });
+        );
+      }
+      groups.push({ label: 'GESTÃO', items: gestao });
     }
     if (this.auth.isPlatformAdmin()) {
       groups.push({
@@ -154,9 +155,14 @@ export class App {
       });
     effect(() => {
       if (this.auth.tenantId()) {
-        this.http
-          .get<ShellPlan>(`${this.cfg.apiBaseUrl}/subscription`)
-          .subscribe({ next: (x) => this.plan.set(x), error: () => this.plan.set(null) });
+        // GET /subscription now requires tenant.manage; only fetch the plan badge for those who can.
+        if (this.has('tenant.manage')) {
+          this.http
+            .get<ShellPlan>(`${this.cfg.apiBaseUrl}/subscription`)
+            .subscribe({ next: (x) => this.plan.set(x), error: () => this.plan.set(null) });
+        } else {
+          this.plan.set(null);
+        }
         this.auth.loadFeatures().subscribe();
       } else {
         this.plan.set(null);
