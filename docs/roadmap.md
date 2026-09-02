@@ -9,7 +9,7 @@ Cada fase é executada, validada e aprovada isoladamente. Uma fase não antecipa
 | F2 | Identity e segurança | acesso somente por usuário autenticado/autorizado |
 | F3 | Multi-tenancy | isolamento automatizado entre tenants |
 | F4 | Administração da plataforma | Platform Admin gerencia tenants com proteção e auditoria |
-| F5 | Planos e features | acesso resolvido por configuração/plano |
+| F5 | Planos e features | acesso resolvido por configuração/plano — **concluída** (enforcement em runtime, ADR-0019) |
 | F6 | Clientes | CRUD tenant-scoped com busca e paginação |
 | F7 | Profissionais e serviços | cadastros e vínculos tenant-scoped |
 | F8 | Agenda | disponibilidade, conflitos, status e timezone corretos |
@@ -36,7 +36,7 @@ A F1 estabelece solution .NET, API, persistência EF Core/PostgreSQL sem entidad
 - F2/F3: parâmetros de token e mecanismo público de seleção do tenant;
 - F8: representação técnica e política de timezone/agendamento;
 - F9/F10: regras comerciais de assinatura e gateway do MVP;
-- F5: enforcement de plano/feature em runtime implementado (ADR-0019) — endpoint filter `RequireFeature`, limites nos serviços de criação, features efetivas no `GET /identity/me`. Catálogo comercial (planos, preços, limites) segue criado pelo Platform Admin.
+- F5 **concluída**: enforcement de plano/feature em runtime (ADR-0019) — `RequireFeature` nos cinco grupos de módulo, limites na criação serializados por advisory lock (PostgreSQL), `TenantFeatureOverride` por tenant, corte na `Subscription` vencida com core preservado, features efetivas no `GET /identity/me`, sidebar/`featureGuard` por permissão ∧ feature. Catálogo comercial (planos, preços, limites) segue criado pelo Platform Admin. Pendência não-bloqueante: `AuditLog` de override/plan/feature (P2.9).
 - F14 concluída em código: Azure/Bicep, CI/CD OIDC, hardening, observabilidade, migrations controladas e runbooks. Provisionamento real permanece pendente e não bloqueante.
 - F15 concluída: template orientado por configuração, segmento semeado por migration e setup inicial opcional e tenant-scoped para Barbearia/Salão.
 

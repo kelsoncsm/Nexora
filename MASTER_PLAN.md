@@ -1005,7 +1005,7 @@ Criar:
 
 Critério:
 
-O acesso aos módulos é controlado por plano/configuração. **Atendido em runtime** (ADR-0019): módulos gateados por `RequireFeature`, limites verificados na criação, feature ausente → 403 `feature_not_in_plan`, limite → 409 `plan_limit_reached`.
+O acesso aos módulos é controlado por plano/configuração. **Atendido em runtime — F5 CONCLUÍDA** (ADR-0019): os cinco grupos de módulo passam por `RequireFeature` → `IFeatureAccessService`; feature ausente/desabilitada → 403 `feature_not_in_plan`; limite atingido na criação → 409 `plan_limit_reached`, serializado por advisory lock em PostgreSQL; `TenantFeatureOverride` habilita/desabilita por tenant; `Subscription` vencida (fora da graça de 7 dias) corta os módulos e mantém o core; `GET /identity/me` expõe as features efetivas; sidebar e `featureGuard` gateiam por permissão ∧ feature. Pendência não-bloqueante: `AuditLog` de override/plan/feature (P2.9).
 
 ---
 

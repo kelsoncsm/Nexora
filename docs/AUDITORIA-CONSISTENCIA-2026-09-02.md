@@ -359,7 +359,7 @@ Ressalva menor: mudança de papel/permissão só reflete no JWT no próximo `ref
 | F2 Identity/Segurança | **CONCLUÍDA** | JWT+refresh rotativo, `IdentityFlowTests`, ADR-0007 | recuperação/alteração de senha não existem |
 | F3 Multi-tenancy | **CONCLUÍDA** | isolamento manual + FKs compostas + `TenancyIsolationTests` (PG) | sem global filter (P3.1) |
 | F4 Platform Admin | **CONCLUÍDA** | grupo `/admin` + `PlatformAdmin` policy + `AuditLog` + `PlatformAdministrationTests` | auditoria não cobre tudo (P2.9) |
-| F5 Plans/Features | **PARCIAL** | entidades + `FeatureAccessService` + `FeatureAccessTests` | **enforcement runtime AUSENTE** (P1.1) — critério "acesso aos módulos controlado por plano" NÃO atendido |
+| F5 Plans/Features | **CONCLUÍDA** (2026-09-02, ADR-0019) | entidades + `FeatureAccessService` + `RequireFeature` nos 5 grupos + limites com advisory lock + `TenantFeatureOverride` + corte na `Subscription` vencida + `GET /identity/me` features + `featureGuard`/sidebar; `FeatureEnforcementTests`/`FeatureEnforcementPostgresTests` | `AuditLog` de override/plan/feature (P2.9), não bloqueante |
 | F6 Customers | **CONCLUÍDA** | CRUD + busca + paginação + status, tenant-scoped, testado | — |
 | F7 Professionals/Services | **CONCLUÍDA** | CRUD + vínculo + FKs compostas, `CatalogIsolationTests` | sem paginação (P2.6) |
 | F8 Scheduling | **CONCLUÍDA** | working hours + bloqueios + appointments + conflito + status + timezone + advisory lock, `SchedulingTests` | UUID crus na UI (P2.7) |
