@@ -2,7 +2,12 @@
 
 ## Status
 
-Aceito — 2026-09-02. Refatoração de persistência, sem mudança funcional.
+**Substituído pelo [ADR-0022](ADR-0022-schema-unico-saas-dev.md) — 2026-09-02.** O Nexora passou a
+compartilhar a database `saas_dev` com o DentalFlow e adotou **um único schema `nexora`** (schema
+por bounded context anularia o ganho de operar lado a lado com outro sistema na mesma database).
+Os bounded contexts continuam válidos como divisão **lógica** do código.
+
+Aceito — 2026-09-02 (histórico). Refatoração de persistência, sem mudança funcional.
 
 ## Contexto
 

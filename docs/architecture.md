@@ -45,7 +45,7 @@ O frontend oferece UX, mas não é autoridade para autenticação, autorização
 
 ## Persistência
 
-PostgreSQL será o banco principal e Entity Framework Core o ORM. O modelo usa banco e tabelas compartilhados; dados tenant-scoped carregam `TenantId`. As tabelas são organizadas por schema PostgreSQL, um por bounded context (ADR-0020) — isso não é isolamento de tenant (continua por `TenantId`), só organização física. Mudanças de schema serão migrations versionadas. Índices serão definidos por consultas reais, com atenção a chaves iniciadas por `TenantId`.
+PostgreSQL será o banco principal e Entity Framework Core o ORM. O modelo usa banco e tabelas compartilhados; dados tenant-scoped carregam `TenantId`. A aplicação vive na database compartilhada `saas_dev` (ao lado do schema `dentalflow`, de outro sistema) e ocupa **um único schema `nexora`**, via `HasDefaultSchema("nexora")` + `Search Path` (ADR-0022, substitui a divisão por schema de contexto do ADR-0020). Os testes de integração ficam confinados ao schema `nexoratest` e nunca tocam `nexora`/`dentalflow`. Bounded contexts continuam sendo uma divisão lógica do código, não física. Mudanças de schema serão migrations versionadas. Índices serão definidos por consultas reais, com atenção a chaves iniciadas por `TenantId`.
 
 ## Configurabilidade
 
