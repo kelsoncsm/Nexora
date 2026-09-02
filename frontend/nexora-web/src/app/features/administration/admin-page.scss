@@ -1,0 +1,20 @@
+main {
+  display: block;
+}
+.nx-admin-create {
+  display: flex;
+  gap: var(--nx-space-3);
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-4);
+}
+.nx-admin-create .nx-form-group {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 160px;
+}
+.nx-table td .nx-table-actions {
+  display: inline-flex;
+  gap: var(--nx-space-2);
+  margin-top: 4px;
+}

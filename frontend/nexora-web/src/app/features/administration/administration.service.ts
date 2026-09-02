@@ -12,6 +12,7 @@ export interface Plan { id:string; code:string; name:string; isActive:boolean; i
 export interface Subscription { id:string;tenantId:string;planId:string;planCode:string;status:string;billingInterval:string;trialEndAt:string;currentPeriodEnd:string;cancelAtPeriodEnd:boolean;pastDueSince:string|null; }
 export interface PlanPrice { id:string;planId:string;billingInterval:string;currency:string;amount:number;isActive:boolean;createdAt:string; }
 export interface BillingInvoice { id:string;tenantId:string;planId:string;billingInterval:string;amount:number;currency:string;status:string;dueAt:string; }
+export interface BillingPayment { id:string;billingInvoiceId:string;externalPaymentId:string;status:string;amount:number;currency:string;method:string;processedAt:string; }
 
 @Injectable({ providedIn: 'root' })
 export class AdministrationService {
@@ -21,6 +22,9 @@ export class AdministrationService {
   tenants() { return this.http.get<AdminTenant[]>(`${this.base}/tenants`); }
   users() { return this.http.get<AdminUser[]>(`${this.base}/users`); }
   segments() { return this.http.get<Segment[]>(`${this.base}/segments`); }
+  createSegment(code:string,name:string){return this.http.post<Segment>(`${this.base}/segments`,{code,name});}
+  updateSegment(id:string,name:string,isActive:boolean){return this.http.put<Segment>(`${this.base}/segments/${id}`,{name,isActive});}
+  setTenantActive(id:string,isActive:boolean){return this.http.patch<void>(`${this.base}/tenants/${id}/status`,{isActive});}
   auditLogs() { return this.http.get<AuditLog[]>(`${this.base}/audit-logs`); }
   features() { return this.http.get<Feature[]>(`${this.base}/features`); }
   plans() { return this.http.get<Plan[]>(`${this.base}/plans`); }
@@ -34,4 +38,5 @@ export class AdministrationService {
   prices(){return this.http.get<PlanPrice[]>(`${this.base}/billing/prices`);}
   setPrice(planId:string,billingInterval:string,amount:number){return this.http.post<PlanPrice>(`${this.base}/billing/prices`,{planId,billingInterval,currency:'BRL',amount});}
   invoices(){return this.http.get<BillingInvoice[]>(`${this.base}/billing/invoices`);}
+  payments(){return this.http.get<BillingPayment[]>(`${this.base}/billing/payments`);}
 }

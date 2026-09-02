@@ -1,3 +1,72 @@
-import { Component, inject, signal } from '@angular/core'; import { FormsModule } from '@angular/forms'; import { HttpClient } from '@angular/common/http'; import { ActivatedRoute } from '@angular/router'; import { APP_CONFIG } from '../../core/config/app-config';
-@Component({ selector: 'app-catalog-page', imports: [FormsModule], template: `<main><header><h1>{{kind==='professionals'?'Profissionais':'Serviços'}}</h1><button (click)="editing.set(true)">Novo</button></header>@if(editing()){<form (ngSubmit)="save()"><input [(ngModel)]="form.name" name="name" required placeholder="Nome">@if(kind==='professionals'){<input [(ngModel)]="form.email" name="email" placeholder="E-mail"><input [(ngModel)]="form.phone" name="phone" placeholder="Telefone">}@else{<textarea [(ngModel)]="form.description" name="description" placeholder="Descrição"></textarea><input type="number" [(ngModel)]="form.durationMinutes" name="duration" min="1" placeholder="Duração"><input type="number" [(ngModel)]="form.price" name="price" min="0" step=".01" placeholder="Preço">}<button>Salvar</button><button type="button" (click)="editing.set(false)">Cancelar</button></form>}@if(kind==='professionals'){<aside><h2>Associar serviço</h2><input [(ngModel)]="professionalId" placeholder="ID profissional"><input [(ngModel)]="serviceId" placeholder="ID serviço"><button (click)="link()">Associar</button></aside>}@for(item of items();track item.id){<article><div><b>{{item.name}}</b><span>{{kind==='services'?(item.durationMinutes+' min · '+item.price):item.email}}</span></div><button (click)="edit(item)">Editar</button><button (click)="remove(item.id)">Excluir</button></article>}</main>`, styles: [`:host{display:block;min-height:100vh;background:#f5f7fb}main{max-width:960px;margin:auto;padding:2rem}header,article{display:flex;justify-content:space-between;align-items:center}form,aside{display:grid;gap:.6rem;background:white;padding:1rem;margin:1rem 0;border-radius:.7rem}input,textarea,button{padding:.7rem}article{background:white;margin:.6rem 0;padding:1rem;border-radius:.7rem}article div{display:flex;flex-direction:column}@media(max-width:600px){article{flex-wrap:wrap;gap:.5rem}}`] })
-export class CatalogPage { private http = inject(HttpClient); private config = inject(APP_CONFIG); kind = inject(ActivatedRoute).snapshot.data['kind'] as string; items = signal<any[]>([]); editing = signal(false); form: any = {}; professionalId = ''; serviceId = ''; constructor() { this.load() } load() { this.http.get<any[]>(`${this.config.apiBaseUrl}/${this.kind}`).subscribe(x => this.items.set(x)) } edit(x: any) { this.form = { ...x }; this.editing.set(true) } save() { const body = this.kind === 'services' ? { ...this.form, durationMinutes: +this.form.durationMinutes, price: +this.form.price, isActive: true } : { ...this.form, isActive: true }; const req = this.form.id ? this.http.put(`${this.config.apiBaseUrl}/${this.kind}/${this.form.id}`, body) : this.http.post(`${this.config.apiBaseUrl}/${this.kind}`, body); req.subscribe(() => { this.editing.set(false); this.form = {}; this.load() }) } remove(id: string) { this.http.delete(`${this.config.apiBaseUrl}/${this.kind}/${id}`).subscribe(() => this.load()) } link() { this.http.put(`${this.config.apiBaseUrl}/professionals/${this.professionalId}/services/${this.serviceId}`, {}).subscribe(() => this.load()) } }
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
+import { APP_CONFIG } from '../../core/config/app-config';
+
+@Component({
+  selector: 'app-catalog-page',
+  imports: [FormsModule],
+  templateUrl: './catalog-page.html',
+  styleUrl: './catalog-page.scss',
+})
+export class CatalogPage {
+  private http = inject(HttpClient);
+  private config = inject(APP_CONFIG);
+  kind = inject(ActivatedRoute).snapshot.data['kind'] as string;
+  items = signal<any[]>([]);
+  editing = signal(false);
+  form: any = {};
+  professionalId = '';
+  serviceId = '';
+  constructor() {
+    this.load();
+  }
+  initials(name: string) {
+    const p = (name || '').trim().split(/\s+/);
+    return ((p[0]?.[0] ?? '?') + (p[1]?.[0] ?? '')).toUpperCase();
+  }
+  startNew() {
+    this.form = {};
+    this.editing.set(true);
+  }
+  load() {
+    this.http
+      .get<any[]>(`${this.config.apiBaseUrl}/${this.kind}`)
+      .subscribe((x) => this.items.set(x));
+  }
+  edit(x: any) {
+    this.form = { ...x };
+    this.editing.set(true);
+  }
+  save() {
+    const body =
+      this.kind === 'services'
+        ? {
+            ...this.form,
+            durationMinutes: +this.form.durationMinutes,
+            price: +this.form.price,
+            isActive: true,
+          }
+        : { ...this.form, isActive: true };
+    const req = this.form.id
+      ? this.http.put(`${this.config.apiBaseUrl}/${this.kind}/${this.form.id}`, body)
+      : this.http.post(`${this.config.apiBaseUrl}/${this.kind}`, body);
+    req.subscribe(() => {
+      this.editing.set(false);
+      this.form = {};
+      this.load();
+    });
+  }
+  remove(id: string) {
+    this.http.delete(`${this.config.apiBaseUrl}/${this.kind}/${id}`).subscribe(() => this.load());
+  }
+  link() {
+    this.http
+      .put(
+        `${this.config.apiBaseUrl}/professionals/${this.professionalId}/services/${this.serviceId}`,
+        {},
+      )
+      .subscribe(() => this.load());
+  }
+}

@@ -4,17 +4,115 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { BillingInterval, OnboardingDraft, OnboardingPlan, OnboardingSegment, OnboardingService } from './onboarding.service';
+import {
+  BillingInterval,
+  OnboardingDraft,
+  OnboardingPlan,
+  OnboardingSegment,
+  OnboardingService,
+} from './onboarding.service';
 
-@Component({selector:'app-onboarding-page',imports:[FormsModule,CurrencyPipe],template:`<main class="onboarding-shell"><header><span class="nx-eyebrow">Configuração inicial</span><h1>Vamos preparar sua empresa</h1><p>Etapa {{draft()?.currentStep ?? 1}} de 5 · seu progresso é salvo automaticamente.</p></header><ol class="steps">@for(step of [1,2,3,4,5];track step){<li [class.active]="step===(draft()?.currentStep ?? 1)">{{step}}</li>}</ol>@if(loading()){<section class="card"><p>Carregando seu onboarding…</p></section>}@else if(draft();as d){<section class="card">@switch(d.currentStep){@case(1){<h2>Sua empresa</h2><label>Nome da empresa<input [(ngModel)]="d.companyName" maxlength="200"></label><label>Slug para acesso<input [(ngModel)]="d.companySlug" maxlength="100" placeholder="minha-empresa"></label>}@case(2){<h2>Segmento</h2><p>Isso personaliza a configuração inicial, sem limitar seus recursos.</p><div class="choices">@for(segment of segments();track segment.id){<button type="button" class="choice" [class.selected]="d.segmentId===segment.id" (click)="d.segmentId=segment.id"><b>{{segment.name}}</b><small>{{segment.code}}</small></button>}</div>}@case(3){<h2>Plano e cobrança futura</h2><p>O teste gratuito dura 14 dias. Nenhuma cobrança é feita agora.</p><div class="choices plans">@for(plan of plans();track plan.planId+'-'+plan.billingInterval){<button type="button" class="choice" [class.selected]="d.planId===plan.planId&&d.billingInterval===plan.billingInterval" (click)="choosePlan(d,plan)"><b>{{plan.name}}</b><span>{{plan.amount|currency:plan.currency}} / {{plan.billingInterval==='Monthly'?'mês':'ano'}}</span><small>@for(limit of plan.limits;track limit.featureCode){ {{limit.featureCode}}{{limit.limit===null?'':' ('+limit.limit+')'}} }</small></button>}</div>}@case(4){<h2>Fuso horário</h2><label>Identificador IANA<input [(ngModel)]="d.timeZoneId" placeholder="America/Sao_Paulo"></label><p>Usaremos este fuso em agenda, relatórios e comunicações.</p>}@case(5){<h2>Confirmar</h2><dl><dt>Empresa</dt><dd>{{d.companyName}}</dd><dt>Endereço</dt><dd>/t/{{d.companySlug}}</dd><dt>Segmento</dt><dd>{{segmentName(d.segmentId)}}</dd><dt>Plano</dt><dd>{{planName(d.planId,d.billingInterval)}}</dd><dt>Fuso</dt><dd>{{d.timeZoneId}}</dd></dl><p>Ao confirmar, criaremos sua empresa e iniciaremos o trial de 14 dias.</p>}}@if(error()){<p class="nx-error" role="alert">{{error()}}</p>}<footer>@if(d.currentStep>1){<button type="button" class="secondary" [disabled]="busy()" (click)="move(-1)">Voltar</button>}<span></span><button type="button" [disabled]="busy()||!valid(d)" (click)="d.currentStep===5?complete():move(1)">{{busy()?'Salvando…':d.currentStep===5?'Criar minha empresa':'Continuar'}}</button></footer></section>}</main>`,styles:[`.onboarding-shell{width:min(100%,900px);padding:24px}.onboarding-shell>header{text-align:center}.onboarding-shell h1{margin:.35rem 0;font-size:clamp(30px,5vw,48px);letter-spacing:-.045em}.onboarding-shell header p,.card>p{color:var(--nx-muted)}.steps{display:flex;justify-content:center;gap:12px;padding:20px 0;list-style:none}.steps li{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#e8eaf2;color:#747b91;font-weight:800}.steps li.active{background:var(--nx-primary);color:#fff}.card{padding:clamp(24px,5vw,48px);border:1px solid var(--nx-border);border-radius:22px;background:#fff;box-shadow:var(--nx-shadow)}.card label{display:grid;gap:7px;margin:18px 0;font-weight:700}.card input{height:48px;padding:0 14px;border:1px solid #dfe2eb;border-radius:11px}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}.choice{display:grid;gap:5px;padding:18px;text-align:left;border:2px solid var(--nx-border);border-radius:14px;background:#fff;color:var(--nx-text)}.choice.selected{border-color:var(--nx-primary);background:var(--nx-primary-soft)}.choice small{color:var(--nx-muted)}dl{display:grid;grid-template-columns:130px 1fr;gap:12px}dt{color:var(--nx-muted)}dd{margin:0;font-weight:700}.card footer{display:flex;gap:10px;margin-top:30px}.card footer span{flex:1}.card footer button{padding:10px 18px;border:0;border-radius:10px;background:var(--nx-primary);color:#fff;font-weight:800}.card footer .secondary{background:#eef0f6;color:var(--nx-text)}button:disabled{opacity:.55}@media(max-width:620px){.onboarding-shell{padding:8px}.choices{grid-template-columns:1fr}.card{padding:22px}dl{grid-template-columns:1fr}}` ]})
+@Component({
+  selector: 'app-onboarding-page',
+  imports: [FormsModule, CurrencyPipe],
+  templateUrl: './onboarding-page.html',
+  styleUrl: './onboarding-page.scss',
+})
 export class OnboardingPage implements OnInit {
-  private readonly service=inject(OnboardingService);private readonly auth=inject(AuthService);private readonly router=inject(Router);
-  readonly draft=signal<OnboardingDraft|null>(null);readonly segments=signal<OnboardingSegment[]>([]);readonly plans=signal<OnboardingPlan[]>([]);readonly loading=signal(true);readonly busy=signal(false);readonly error=signal('');
-  ngOnInit():void{forkJoin({draft:this.service.start(),segments:this.service.segments(),plans:this.service.plans()}).subscribe({next:x=>{if(!x.draft.timeZoneId)x.draft.timeZoneId=Intl.DateTimeFormat().resolvedOptions().timeZone;this.draft.set(x.draft);this.segments.set(x.segments);this.plans.set(x.plans);this.loading.set(false);},error:()=>{this.error.set('Não foi possível carregar o onboarding.');this.loading.set(false);}});}
-  choosePlan(d:OnboardingDraft,p:OnboardingPlan):void{d.planId=p.planId;d.billingInterval=p.billingInterval;}
-  valid(d:OnboardingDraft):boolean{switch(d.currentStep){case 1:return !!d.companyName?.trim()&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(d.companySlug??'');case 2:return !!d.segmentId;case 3:return !!d.planId&&!!d.billingInterval;case 4:return !!d.timeZoneId?.includes('/');default:return true;}}
-  move(delta:number):void{const d=this.draft();if(!d)return;d.currentStep=Math.min(5,Math.max(1,d.currentStep+delta));this.save();}
-  complete():void{const d=this.draft();if(!d||this.busy())return;this.busy.set(true);this.error.set('');this.service.complete(d.id).subscribe({next:x=>this.auth.selectTenant(x.tenantSlug).subscribe({next:()=>void this.router.navigateByUrl('/configuracao-inicial'),error:()=>{this.busy.set(false);this.error.set('Empresa criada, mas não foi possível abrir a sessão.');}}),error:e=>{this.busy.set(false);this.error.set(e.error?.title??'Não foi possível concluir o onboarding.');}});}
-  segmentName(id:string|null):string{return this.segments().find(x=>x.id===id)?.name??'—';}planName(id:string|null,interval:BillingInterval|null):string{const p=this.plans().find(x=>x.planId===id&&x.billingInterval===interval);return p?`${p.name} · ${p.billingInterval==='Monthly'?'mensal':'anual'}`:'—';}
-  private save():void{const d=this.draft();if(!d)return;this.busy.set(true);this.error.set('');this.service.update(d).subscribe({next:x=>{this.draft.set(x);this.busy.set(false);},error:e=>{this.busy.set(false);this.error.set(e.error?.title??'Não foi possível salvar o progresso.');}});}
+  private readonly service = inject(OnboardingService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  readonly draft = signal<OnboardingDraft | null>(null);
+  readonly segments = signal<OnboardingSegment[]>([]);
+  readonly plans = signal<OnboardingPlan[]>([]);
+  readonly loading = signal(true);
+  readonly busy = signal(false);
+  readonly error = signal('');
+  ngOnInit(): void {
+    forkJoin({
+      draft: this.service.start(),
+      segments: this.service.segments(),
+      plans: this.service.plans(),
+    }).subscribe({
+      next: (x) => {
+        if (!x.draft.timeZoneId)
+          x.draft.timeZoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        this.draft.set(x.draft);
+        this.segments.set(x.segments);
+        this.plans.set(x.plans);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Não foi possível carregar o onboarding.');
+        this.loading.set(false);
+      },
+    });
+  }
+  choosePlan(d: OnboardingDraft, p: OnboardingPlan): void {
+    d.planId = p.planId;
+    d.billingInterval = p.billingInterval;
+  }
+  valid(d: OnboardingDraft): boolean {
+    switch (d.currentStep) {
+      case 1:
+        return !!d.companyName?.trim() && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(d.companySlug ?? '');
+      case 2:
+        return !!d.segmentId;
+      case 3:
+        return !!d.planId && !!d.billingInterval;
+      case 4:
+        return !!d.timeZoneId?.includes('/');
+      default:
+        return true;
+    }
+  }
+  move(delta: number): void {
+    const d = this.draft();
+    if (!d) return;
+    d.currentStep = Math.min(5, Math.max(1, d.currentStep + delta));
+    this.save();
+  }
+  complete(): void {
+    const d = this.draft();
+    if (!d || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.service.complete(d.id).subscribe({
+      next: (x) =>
+        this.auth.selectTenant(x.tenantSlug).subscribe({
+          next: () => void this.router.navigateByUrl('/configuracao-inicial'),
+          error: () => {
+            this.busy.set(false);
+            this.error.set('Empresa criada, mas não foi possível abrir a sessão.');
+          },
+        }),
+      error: (e) => {
+        this.busy.set(false);
+        this.error.set(e.error?.title ?? 'Não foi possível concluir o onboarding.');
+      },
+    });
+  }
+  segmentName(id: string | null): string {
+    return this.segments().find((x) => x.id === id)?.name ?? '—';
+  }
+  planName(id: string | null, interval: BillingInterval | null): string {
+    const p = this.plans().find((x) => x.planId === id && x.billingInterval === interval);
+    return p ? `${p.name} · ${p.billingInterval === 'Monthly' ? 'mensal' : 'anual'}` : '—';
+  }
+  private save(): void {
+    const d = this.draft();
+    if (!d) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.service.update(d).subscribe({
+      next: (x) => {
+        this.draft.set(x);
+        this.busy.set(false);
+      },
+      error: (e) => {
+        this.busy.set(false);
+        this.error.set(e.error?.title ?? 'Não foi possível salvar o progresso.');
+      },
+    });
+  }
 }

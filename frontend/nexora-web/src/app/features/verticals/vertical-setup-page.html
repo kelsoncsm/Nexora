@@ -1,0 +1,59 @@
+<main>
+  @if (loading()) {
+    <section class="card"><p>Carregando configuração…</p></section>
+  } @else if (setup(); as model) {
+    <header>
+      <span class="nx-eyebrow">{{ model.name }}</span>
+      <h1>{{ model.onboardingTitle }}</h1>
+      <p>{{ model.onboardingDescription }}</p>
+    </header>
+    <section class="card">
+      <h2>Serviços iniciais</h2>
+      <p>
+        Todos são opcionais. Ao selecionar um item, informe os valores praticados pela sua empresa.
+      </p>
+      <div class="presets">
+        @for (item of model.servicePresets; track item.code) {
+          <article [class.selected]="item.selected">
+            <label
+              ><input type="checkbox" [(ngModel)]="item.selected" />
+              <span
+                ><b>{{ item.name }}</b
+                ><small>{{ item.category }}</small></span
+              ></label
+            >
+            @if (item.selected) {
+              <div>
+                <label
+                  >Duração (min)<input
+                    type="number"
+                    min="1"
+                    [(ngModel)]="item.durationMinutes" /></label
+                ><label
+                  >Preço<input type="number" min="0" step=".01" [(ngModel)]="item.price"
+                /></label>
+              </div>
+            }
+          </article>
+        }
+      </div>
+      @if (error()) {
+        <p class="nx-error" role="alert">{{ error() }}</p>
+      }
+      <footer>
+        <button class="secondary" (click)="skip()">Configurar depois</button
+        ><button [disabled]="busy() || !valid()" (click)="apply()">
+          {{ busy() ? 'Salvando…' : 'Iniciar operação' }}
+        </button>
+      </footer>
+    </section>
+  } @else {
+    <section class="card">
+      <h1>Configuração genérica</h1>
+      <p>
+        Este segmento não possui um template inicial. Você pode configurar serviços normalmente.
+      </p>
+      <button (click)="skip()">Continuar</button>
+    </section>
+  }
+</main>

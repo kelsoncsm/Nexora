@@ -1,0 +1,40 @@
+main {
+  display: block;
+}
+.nx-hub-grid {
+  display: grid;
+  gap: var(--nx-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.nx-hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    box-shadow var(--nx-transition),
+    transform var(--nx-transition);
+}
+.nx-hub-card:hover {
+  box-shadow: var(--nx-shadow-lg);
+  transform: translateY(-2px);
+}
+.nx-hub-card strong {
+  font-size: var(--nx-fs-md);
+}
+.nx-hub-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-primary-light);
+  color: var(--nx-primary);
+  margin-bottom: 6px;
+}
+.nx-hub-icon .nx-ico {
+  width: 20px;
+  height: 20px;
+}

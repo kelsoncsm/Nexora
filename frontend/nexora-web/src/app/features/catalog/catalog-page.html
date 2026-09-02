@@ -1,0 +1,188 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>{{ kind === 'professionals' ? 'Profissionais' : 'Serviços' }}</h1>
+      <p>
+        {{
+          kind === 'professionals'
+            ? 'Equipe que realiza os atendimentos.'
+            : 'Catálogo de serviços oferecidos.'
+        }}
+      </p>
+    </div>
+    <div class="nx-ph-actions">
+      <button class="nx-btn" (click)="startNew()">
+        <svg class="nx-ico"><use href="#i-plus" /></svg
+        >{{ kind === 'professionals' ? 'Novo profissional' : 'Novo serviço' }}
+      </button>
+    </div>
+  </div>
+
+  @if (editing()) {
+    <form class="nx-card" (ngSubmit)="save()" style="margin-bottom: var(--nx-space-4)">
+      <h2 class="nx-section-title">
+        {{ form.id ? 'Editar' : 'Novo' }}
+        {{ kind === 'professionals' ? 'profissional' : 'serviço' }}
+      </h2>
+      <div class="nx-form-row">
+        <div class="nx-form-group">
+          <label class="nx-form-label">Nome</label
+          ><input
+            class="nx-form-control"
+            [(ngModel)]="form.name"
+            name="name"
+            required
+            placeholder="Nome"
+          />
+        </div>
+        @if (kind === 'professionals') {
+          <div class="nx-form-group">
+            <label class="nx-form-label">E-mail</label
+            ><input
+              class="nx-form-control"
+              [(ngModel)]="form.email"
+              name="email"
+              placeholder="email@exemplo.com"
+            />
+          </div>
+        } @else {
+          <div class="nx-form-group">
+            <label class="nx-form-label">Duração (min)</label
+            ><input
+              class="nx-form-control"
+              type="number"
+              [(ngModel)]="form.durationMinutes"
+              name="duration"
+              min="1"
+              placeholder="30"
+            />
+          </div>
+        }
+      </div>
+      <div class="nx-form-row">
+        @if (kind === 'professionals') {
+          <div class="nx-form-group">
+            <label class="nx-form-label">Telefone</label
+            ><input
+              class="nx-form-control"
+              [(ngModel)]="form.phone"
+              name="phone"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div></div>
+        } @else {
+          <div class="nx-form-group">
+            <label class="nx-form-label">Preço</label
+            ><input
+              class="nx-form-control"
+              type="number"
+              [(ngModel)]="form.price"
+              name="price"
+              min="0"
+              step=".01"
+              placeholder="0,00"
+            />
+          </div>
+          <div class="nx-form-group">
+            <label class="nx-form-label">Descrição</label
+            ><input
+              class="nx-form-control"
+              [(ngModel)]="form.description"
+              name="description"
+              placeholder="Descrição breve"
+            />
+          </div>
+        }
+      </div>
+      <div class="nx-form-actions">
+        <button type="button" class="nx-btn nx-btn--secondary" (click)="editing.set(false)">
+          Cancelar
+        </button>
+        <button type="submit" class="nx-btn">Salvar</button>
+      </div>
+    </form>
+  }
+
+  <div class="nx-card">
+    <div class="nx-table-wrap">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>{{ kind === 'professionals' ? 'Profissional' : 'Serviço' }}</th>
+            <th>{{ kind === 'professionals' ? 'Contato' : 'Duração / preço' }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td [attr.data-label]="kind === 'professionals' ? 'Profissional' : 'Serviço'">
+                <span class="nx-table-person"
+                  ><span class="nx-table-avatar">{{ initials(item.name) }}</span
+                  >{{ item.name }}</span
+                >
+              </td>
+              <td data-label="Detalhes">
+                {{
+                  kind === 'services'
+                    ? item.durationMinutes + ' min · R$ ' + item.price
+                    : item.email || item.phone || '—'
+                }}
+              </td>
+              <td class="nx-table-cell-actions">
+                <div class="nx-table-actions">
+                  <button
+                    class="nx-btn nx-btn--ghost nx-btn--sm"
+                    type="button"
+                    (click)="edit(item)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    class="nx-btn nx-btn--danger nx-btn--sm"
+                    type="button"
+                    (click)="remove(item.id)"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" style="padding: 0">
+                <div class="nx-empty">
+                  <svg class="nx-ico">
+                    <use
+                      [attr.href]="kind === 'professionals' ? '#i-briefcase' : '#i-scissors'"
+                    /></svg
+                  ><b>Nada cadastrado ainda</b><span>Adicione o primeiro item para começar.</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (kind === 'professionals') {
+    <div class="nx-card--flat" style="margin-top: var(--nx-space-4)">
+      <h2 class="nx-section-title">Associar serviço a um profissional</h2>
+      <div class="nx-form-row">
+        <div class="nx-form-group">
+          <label class="nx-form-label">ID do profissional</label
+          ><input class="nx-form-control" [(ngModel)]="professionalId" placeholder="uuid" />
+        </div>
+        <div class="nx-form-group">
+          <label class="nx-form-label">ID do serviço</label
+          ><input class="nx-form-control" [(ngModel)]="serviceId" placeholder="uuid" />
+        </div>
+      </div>
+      <button class="nx-btn nx-btn--outline" type="button" (click)="link()">
+        <svg class="nx-ico"><use href="#i-plus" /></svg>Associar
+      </button>
+    </div>
+  }
+</main>

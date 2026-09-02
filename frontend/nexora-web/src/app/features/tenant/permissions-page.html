@@ -1,0 +1,91 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Perfis e Permissões</h1>
+      <p>Escolha um papel e ajuste o que ele pode fazer.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="nx-alert nx-alert--danger">{{ error() }}</div>
+  }
+  @if (saved()) {
+    <div class="nx-alert nx-alert--success">Permissões atualizadas.</div>
+  }
+
+  <div class="nx-card">
+    <div class="nx-form-group" style="max-width: 360px; margin-bottom: 0">
+      <label class="nx-form-label" for="role">Papel</label>
+      <select
+        id="role"
+        class="nx-form-control"
+        [ngModel]="selectedRoleId()"
+        (ngModelChange)="selectRole($event)"
+      >
+        <option value="" disabled>Selecione um papel</option>
+        @for (r of roles(); track r.id) {
+          <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (sistema)' : '' }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (current(); as role) {
+    <form class="nx-card" (ngSubmit)="save()">
+      <div class="nx-perm-head">
+        <h2 class="nx-section-title" style="margin: 0">{{ role.name }}</h2>
+        @if (role.isSystem) {
+          <span class="nx-badge nx-badge--info">Somente leitura</span>
+        }
+        <span class="nx-form-hint"
+          >{{ selectedKeys().size }} de {{ catalog().length }} permissões</span
+        >
+      </div>
+
+      @for (g of groups(); track g.module) {
+        <fieldset class="nx-perm-group">
+          <legend>
+            <label class="nx-checkbox-row">
+              <input
+                type="checkbox"
+                [disabled]="role.isSystem"
+                [checked]="allChecked(g)"
+                [indeterminate]="someChecked(g) && !allChecked(g)"
+                (change)="toggleGroup(g, $any($event.target).checked)"
+              />
+              <b>{{ g.label }}</b>
+            </label>
+          </legend>
+          <div class="nx-perm-items">
+            @for (p of g.items; track p.key) {
+              <label class="nx-checkbox-row">
+                <input
+                  type="checkbox"
+                  [disabled]="role.isSystem"
+                  [checked]="selectedKeys().has(p.key)"
+                  (change)="toggle(p.key, $any($event.target).checked)"
+                />
+                <span
+                  >{{ actionLabel(p.action) }} <code>{{ p.key }}</code></span
+                >
+              </label>
+            }
+          </div>
+        </fieldset>
+      }
+
+      @if (!role.isSystem) {
+        <div class="nx-form-actions">
+          <button class="nx-btn nx-btn--secondary" type="button" (click)="reset()">Desfazer</button>
+          <button class="nx-btn" type="submit" [disabled]="busy() || !dirty()">
+            {{ busy() ? 'Salvando…' : 'Salvar permissões' }}
+          </button>
+        </div>
+      } @else {
+        <p class="nx-form-hint" style="margin-top: var(--nx-space-4)">
+          O papel de sistema tem todas as permissões e não pode ser alterado.
+        </p>
+      }
+    </form>
+  }
+</main>

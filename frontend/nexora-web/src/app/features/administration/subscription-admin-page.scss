@@ -1,0 +1,45 @@
+main {
+  display: block;
+}
+.nx-sub-form {
+  display: flex;
+  gap: var(--nx-space-3);
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-4);
+}
+.nx-sub-form .nx-form-group {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 180px;
+}
+.nx-sub-head {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-2);
+}
+.nx-sub-plan {
+  font-weight: 700;
+  font-size: var(--nx-fs-sm);
+}
+.nx-sub-actions {
+  display: flex;
+  gap: var(--nx-space-2);
+  flex-wrap: wrap;
+  margin-top: var(--nx-space-3);
+}
+.nx-toast {
+  position: fixed;
+  right: var(--nx-space-4);
+  bottom: var(--nx-space-4);
+  max-width: calc(100vw - 2rem);
+  background: var(--nx-danger);
+  color: #fff;
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border-radius: var(--nx-radius-sm);
+  box-shadow: var(--nx-shadow-lg);
+  z-index: 1100;
+  font-size: var(--nx-fs-sm);
+}

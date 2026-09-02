@@ -1,7 +1,64 @@
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AdministrationService, Subscription } from './administration.service';
 
-@Component({selector:'app-subscription-admin-page',imports:[FormsModule,DatePipe],template:`<main><header><div><span>Platform Admin</span><h1>Assinaturas</h1></div><a href="/admin">Voltar ao painel</a></header><form (ngSubmit)="create()"><input [(ngModel)]="tenantId" name="tenant" required placeholder="Tenant ID"><input [(ngModel)]="planId" name="plan" required placeholder="Plan ID"><select [(ngModel)]="interval" name="interval"><option value="Monthly">Mensal</option><option value="Yearly">Anual</option></select><button>Iniciar trial</button></form>@for(item of subscriptions();track item.id){<article><div><b>{{item.status}}</b><span>Tenant {{item.tenantId}}</span><span>Plano {{item.planCode}} · {{item.billingInterval}}</span><small>Período até {{item.currentPeriodEnd|date:'short'}} @if(item.cancelAtPeriodEnd){· cancelamento programado}</small></div><nav><button (click)="act(item,'activate')">Ativar / regularizar</button><button (click)="changePlan(item)">Trocar plano</button><button (click)="act(item,'mark-past-due')">Marcar inadimplente</button><button (click)="act(item,'cancel-at-period-end')">Cancelar no fim</button><button class="danger" (click)="act(item,'cancel-immediately')">Cancelar agora</button></nav></article>}@empty{<p>Nenhuma assinatura cadastrada.</p>}@if(error()){<aside>{{error()}}</aside>}</main>`,styles:[`:host{display:block;min-height:100vh;background:#f4f7fb;color:#17233c}main{max-width:1100px;margin:auto;padding:2rem}header{display:flex;justify-content:space-between;align-items:center}form{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:.7rem;background:white;padding:1rem;border-radius:.8rem;margin:1.5rem 0}input,select,button{padding:.7rem;border:1px solid #cad4e3;border-radius:.5rem}button{cursor:pointer;background:#1d4ed8;color:white}.danger{background:#991b1b}article{display:grid;grid-template-columns:1fr 2fr;gap:1rem;background:white;padding:1rem;margin:.7rem 0;border-radius:.8rem}article div{display:grid;gap:.3rem}nav{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}aside{position:fixed;right:1rem;bottom:1rem;background:#991b1b;color:white;padding:1rem}@media(max-width:750px){form,article{grid-template-columns:1fr}}`]})
-export class SubscriptionAdminPage{private api=inject(AdministrationService);subscriptions=signal<Subscription[]>([]);error=signal('');tenantId='';planId='';interval='Monthly';constructor(){this.load()}load(){this.api.subscriptions().subscribe({next:x=>this.subscriptions.set(x),error:()=>this.fail()})}create(){this.api.createSubscription(this.tenantId,this.planId,this.interval).subscribe({next:()=>{this.tenantId='';this.planId='';this.load()},error:()=>this.fail()})}act(item:Subscription,action:string){this.api.subscriptionAction(item.id,action).subscribe({next:()=>this.load(),error:()=>this.fail()})}changePlan(item:Subscription){const planId=window.prompt('Novo Plan ID',item.planId);if(planId)this.api.subscriptionAction(item.id,'change-plan',{planId}).subscribe({next:()=>this.load(),error:()=>this.fail()})}private fail(){this.error.set('Não foi possível concluir a operação.');setTimeout(()=>this.error.set(''),4000)}}
+@Component({
+  selector: 'app-subscription-admin-page',
+  imports: [FormsModule, DatePipe, RouterLink],
+  templateUrl: './subscription-admin-page.html',
+  styleUrl: './subscription-admin-page.scss',
+})
+export class SubscriptionAdminPage {
+  private api = inject(AdministrationService);
+  subscriptions = signal<Subscription[]>([]);
+  error = signal('');
+  tenantId = '';
+  planId = '';
+  interval = 'Monthly';
+  constructor() {
+    this.load();
+  }
+  badge(status: string) {
+    const s = (status || '').toLowerCase();
+    return s === 'active' || s === 'trialing'
+      ? 'nx-badge--success'
+      : s === 'pastdue'
+        ? 'nx-badge--warning'
+        : s === 'canceled' || s === 'expired'
+          ? 'nx-badge--danger'
+          : 'nx-badge--neutral';
+  }
+  load() {
+    this.api
+      .subscriptions()
+      .subscribe({ next: (x) => this.subscriptions.set(x), error: () => this.fail() });
+  }
+  create() {
+    this.api.createSubscription(this.tenantId, this.planId, this.interval).subscribe({
+      next: () => {
+        this.tenantId = '';
+        this.planId = '';
+        this.load();
+      },
+      error: () => this.fail(),
+    });
+  }
+  act(item: Subscription, action: string) {
+    this.api
+      .subscriptionAction(item.id, action)
+      .subscribe({ next: () => this.load(), error: () => this.fail() });
+  }
+  changePlan(item: Subscription) {
+    const planId = window.prompt('Novo Plan ID', item.planId);
+    if (planId)
+      this.api
+        .subscriptionAction(item.id, 'change-plan', { planId })
+        .subscribe({ next: () => this.load(), error: () => this.fail() });
+  }
+  private fail() {
+    this.error.set('Não foi possível concluir a operação.');
+    setTimeout(() => this.error.set(''), 4000);
+  }
+}

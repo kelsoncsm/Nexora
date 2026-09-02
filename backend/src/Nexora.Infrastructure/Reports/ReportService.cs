@@ -18,12 +18,19 @@ public sealed class ReportService(NexoraDbContext dbContext, ITenantContext tena
             await appointments.CountAsync(x => x.Status == AppointmentStatus.Completed, cancellationToken),
             await appointments.CountAsync(x => x.Status == AppointmentStatus.Cancelled, cancellationToken),
             await appointments.CountAsync(x => x.Status == AppointmentStatus.NoShow, cancellationToken));
-        var productivity = await appointments.Where(x => x.Status == AppointmentStatus.Completed)
-            .GroupBy(x => new { x.ProfessionalId })
-            .Select(group => new { group.Key.ProfessionalId, Count = group.Count() })
-            .Join(dbContext.Professionals.Where(x => x.TenantId == tenantId), x => x.ProfessionalId, x => x.Id,
-                (metric, professional) => new ProfessionalProductivity(professional.Id, professional.Name, metric.Count))
-            .OrderByDescending(x => x.CompletedAppointments).ToListAsync(cancellationToken);
+        // Aggregation, join and ordering stay in SQL over scalar/anonymous shapes; only the
+        // final record projection runs in memory over the already-aggregated, bounded result
+        // (at most one row per tenant professional). Ordering the projected positional record
+        // directly is not translatable by the Npgsql provider.
+        var productivity = (await appointments.Where(x => x.Status == AppointmentStatus.Completed)
+            .GroupBy(x => x.ProfessionalId)
+            .Select(group => new { ProfessionalId = group.Key, Count = group.Count() })
+            .Join(dbContext.Professionals.Where(x => x.TenantId == tenantId), metric => metric.ProfessionalId, professional => professional.Id,
+                (metric, professional) => new { professional.Id, professional.Name, metric.Count })
+            .OrderByDescending(x => x.Count).ThenBy(x => x.Name)
+            .ToListAsync(cancellationToken))
+            .Select(x => new ProfessionalProductivity(x.Id, x.Name, x.Count))
+            .ToList();
         var customers = await dbContext.Customers.CountAsync(x => x.TenantId == tenantId && x.CreatedAt < period.To, cancellationToken);
         return new(period, customers, appointmentMetrics, productivity);
     }

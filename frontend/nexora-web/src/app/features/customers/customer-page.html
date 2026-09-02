@@ -1,0 +1,141 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Clientes</h1>
+      <p>Gerencie e acompanhe seus clientes.</p>
+    </div>
+    <div class="nx-ph-actions">
+      <button class="nx-btn" (click)="newCustomer()">
+        <svg class="nx-ico"><use href="#i-plus" /></svg>Novo cliente
+      </button>
+    </div>
+  </div>
+
+  @if (editing()) {
+    <form class="nx-card" (ngSubmit)="save()" style="margin-bottom: var(--nx-space-4)">
+      <h2 class="nx-section-title">{{ form.id ? 'Editar cliente' : 'Novo cliente' }}</h2>
+      <div class="nx-form-row">
+        <div class="nx-form-group">
+          <label class="nx-form-label">Nome</label
+          ><input
+            class="nx-form-control"
+            [(ngModel)]="form.name"
+            name="name"
+            required
+            placeholder="Nome completo"
+          />
+        </div>
+        <div class="nx-form-group">
+          <label class="nx-form-label">Telefone</label
+          ><input
+            class="nx-form-control"
+            [(ngModel)]="form.phone"
+            name="phone"
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+      </div>
+      <div class="nx-form-row">
+        <div class="nx-form-group">
+          <label class="nx-form-label">E-mail</label
+          ><input
+            class="nx-form-control"
+            [(ngModel)]="form.email"
+            name="email"
+            placeholder="email@exemplo.com"
+          />
+        </div>
+        <div class="nx-form-group">
+          <label class="nx-form-label">Observações</label
+          ><input
+            class="nx-form-control"
+            [(ngModel)]="form.notes"
+            name="notes"
+            placeholder="Anotações internas"
+          />
+        </div>
+      </div>
+      <div class="nx-form-actions">
+        <button type="button" class="nx-btn nx-btn--secondary" (click)="editing.set(false)">
+          Cancelar
+        </button>
+        <button type="submit" class="nx-btn">Salvar cliente</button>
+      </div>
+    </form>
+  }
+
+  <div class="nx-card">
+    <div class="nx-table-toolbar">
+      <div class="nx-search-field nx-input-icon">
+        <svg class="nx-ico"><use href="#i-search" /></svg>
+        <input
+          class="nx-form-control"
+          [(ngModel)]="search"
+          (keyup.enter)="load()"
+          placeholder="Buscar por nome, telefone ou e-mail"
+        />
+      </div>
+      <button class="nx-btn nx-btn--secondary" type="button" (click)="load()">
+        <svg class="nx-ico"><use href="#i-filter" /></svg>Filtrar
+      </button>
+    </div>
+
+    <div class="nx-table-wrap">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Contato</th>
+            <th>Observações</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of customers(); track c.id) {
+            <tr>
+              <td data-label="Cliente">
+                <span class="nx-table-person"
+                  ><span class="nx-table-avatar">{{ initials(c.name) }}</span
+                  >{{ c.name }}</span
+                >
+              </td>
+              <td data-label="Contato">{{ c.email || c.phone || '—' }}</td>
+              <td data-label="Observações" class="muted">{{ c.notes || '—' }}</td>
+              <td class="nx-table-cell-actions">
+                <div class="nx-table-actions">
+                  <button class="nx-btn nx-btn--ghost nx-btn--sm" type="button" (click)="edit(c)">
+                    Editar
+                  </button>
+                  <button
+                    class="nx-btn nx-btn--danger nx-btn--sm"
+                    type="button"
+                    (click)="remove(c.id)"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" style="padding: 0">
+                <div class="nx-empty">
+                  <svg class="nx-ico"><use href="#i-users" /></svg><b>Nenhum cliente encontrado</b
+                  ><span>Cadastre o primeiro cliente ou ajuste a busca.</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (total() > customers().length) {
+      <div class="nx-pagination">
+        <span class="nx-form-hint"
+          >Mostrando {{ customers().length }} de {{ total() }} clientes</span
+        >
+      </div>
+    }
+  </div>
+</main>

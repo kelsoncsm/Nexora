@@ -16,7 +16,66 @@ public static class TenancyEndpoints
         endpoints.MapGet("/api/v1/tenant/members", GetMembersAsync).RequireAuthorization();
         endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync).RequireAuthorization();
         endpoints.MapPatch("/api/v1/tenant/members/{membershipId:guid}/deactivate", DeactivateAsync).RequireAuthorization();
+
+        var admin = endpoints.MapGroup("/api/v1/tenant").RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
+        admin.MapGet("/", GetProfileAsync);
+        admin.MapPut("/", UpdateProfileAsync);
+        admin.MapGet("/permissions", GetPermissionCatalog);
+        admin.MapGet("/roles", GetRolesAsync);
+        admin.MapPost("/roles", CreateRoleAsync);
+        admin.MapPut("/roles/{roleId:guid}", UpdateRoleAsync);
+        admin.MapGet("/roles/{roleId:guid}/permissions", GetRolePermissionsAsync);
+        admin.MapPut("/roles/{roleId:guid}/permissions", SetRolePermissionsAsync);
+        admin.MapPatch("/members/{membershipId:guid}/role", AssignRoleAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> GetProfileAsync(ITenantContext tenant, ITenancyService service, CancellationToken ct) =>
+        tenant.IsAvailable && await service.GetProfileAsync(tenant.TenantId, ct) is { } profile ? Results.Ok(profile) : Results.NotFound();
+
+    private static async Task<IResult> UpdateProfileAsync(UpdateTenantRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return Results.Ok(await service.UpdateProfileAsync(tenant.TenantId, request.Name, request.TimeZoneId, ct));
+    }
+
+    private static IResult GetPermissionCatalog() => Results.Ok(TenantPermissions.Catalog);
+
+    private static async Task<IResult> GetRolesAsync(ITenantContext tenant, ITenancyService service, CancellationToken ct) =>
+        tenant.IsAvailable ? Results.Ok(await service.GetRolesAsync(tenant.TenantId, ct)) : Results.Unauthorized();
+
+    private static async Task<IResult> CreateRoleAsync(RoleRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        var role = await service.CreateRoleAsync(tenant.TenantId, request.Name, request.Description ?? string.Empty, request.Permissions ?? [], ct);
+        return Results.Created($"/api/v1/tenant/roles/{role.Id}", role);
+    }
+
+    private static async Task<IResult> UpdateRoleAsync(Guid roleId, RoleRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.UpdateRoleAsync(tenant.TenantId, roleId, request.Name, request.Description ?? string.Empty, ct) is { } role
+            ? Results.Ok(role) : Results.NotFound();
+    }
+
+    private static async Task<IResult> GetRolePermissionsAsync(Guid roleId, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.GetRoleAsync(tenant.TenantId, roleId, ct) is { } role
+            ? Results.Ok(new { role.Id, role.Permissions }) : Results.NotFound();
+    }
+
+    private static async Task<IResult> SetRolePermissionsAsync(Guid roleId, RolePermissionsRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.SetRolePermissionsAsync(tenant.TenantId, roleId, request.Permissions ?? [], ct) is { } role
+            ? Results.Ok(role) : Results.NotFound();
+    }
+
+    private static async Task<IResult> AssignRoleAsync(Guid membershipId, AssignRoleRequest request, ITenantContext tenant, ITenancyService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.AssignRoleAsync(tenant.TenantId, membershipId, request.RoleId, ct) ? Results.NoContent() : Results.NotFound();
     }
 
     private static async Task<IResult> ResolvePublicAsync(string tenantSlug, ITenancyService service, CancellationToken ct) =>
@@ -50,4 +109,8 @@ public static class TenancyEndpoints
     { HttpOnly = true, Secure = !context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment(), SameSite = SameSiteMode.Strict,
       Path = "/api/v1", MaxAge = TimeSpan.FromDays(7) };
     private sealed record CreateTenantRequest(string Name, string Slug, string TimeZoneId);
+    private sealed record UpdateTenantRequest(string Name, string TimeZoneId);
+    private sealed record RoleRequest(string Name, string? Description, string[]? Permissions);
+    private sealed record RolePermissionsRequest(string[]? Permissions);
+    private sealed record AssignRoleRequest(Guid RoleId);
 }

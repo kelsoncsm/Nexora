@@ -1,0 +1,46 @@
+<main>
+  <div class="nx-page-header">
+    <div>
+      <h1>Meu Perfil</h1>
+      <p>Seus dados de acesso ao Nexora.</p>
+    </div>
+  </div>
+
+  <div class="nx-grid nx-grid--2">
+    <div class="nx-card">
+      <h2 class="nx-section-title">Conta</h2>
+      <div class="nx-profile-head">
+        <span
+          class="nx-avatar"
+          style="width: 56px; height: 56px; flex-basis: 56px; font-size: 1rem"
+          >{{ initials() }}</span
+        >
+        <div>
+          <strong>{{ user()?.email || auth.userLabel() }}</strong>
+          <span class="nx-form-hint">{{ contextLabel() }}</span>
+        </div>
+      </div>
+      <p class="nx-form-hint" style="margin-top: var(--nx-space-4)">
+        Alteração de nome, e-mail e senha ainda não estão disponíveis nesta versão.
+      </p>
+    </div>
+
+    <div class="nx-card">
+      <h2 class="nx-section-title">Permissões nesta sessão</h2>
+      @if (permissions().length) {
+        <div class="nx-perm-chips">
+          @for (p of permissions(); track p) {
+            <span class="nx-badge nx-badge--info">{{ p }}</span>
+          }
+        </div>
+      } @else {
+        <p class="nx-form-hint">Nenhuma permissão específica no token atual.</p>
+      }
+      @if (auth.tenantId()) {
+        <p class="nx-form-hint" style="margin-top: var(--nx-space-3)">
+          As permissões efetivas da empresa são aplicadas pelo servidor a cada requisição.
+        </p>
+      }
+    </div>
+  </div>
+</main>

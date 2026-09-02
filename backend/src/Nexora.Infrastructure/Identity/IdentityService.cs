@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Nexora.Application.Identity;
+using Nexora.Application.Tenancy;
 using Nexora.Domain.Identity;
 using Nexora.Infrastructure.Persistence;
 using Nexora.Application.Notifications;
@@ -16,7 +17,8 @@ public sealed class IdentityService(
     IAccessTokenGenerator tokenGenerator,
     IEmailOutbox emailOutbox,
     IOptions<IdentityOptions> options,
-    TimeProvider timeProvider) : IIdentityService
+    TimeProvider timeProvider,
+    ITenancyService tenancy) : IIdentityService
 {
     private const string DefaultRole = "User";
     private const string ProfilePermission = "identity.profile";
@@ -87,7 +89,7 @@ public sealed class IdentityService(
         dbContext.RefreshTokens.Add(new RefreshToken(stored.UserId, replacementHash, stored.FamilyId, now,
             now.AddDays(options.Value.RefreshTokenDays), stored.TenantId));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return BuildSession(stored.User, raw, stored.TenantId);
+        return await BuildSession(stored.User, raw, stored.TenantId, cancellationToken);
     }
 
     private async Task<AuthenticatedSession> RefreshAtomicallyAsync(string refreshToken,CancellationToken cancellationToken)
@@ -110,7 +112,7 @@ public sealed class IdentityService(
         var user=await dbContext.Users.Include(x=>x.Roles).ThenInclude(x=>x.Role).ThenInclude(x=>x.Permissions).ThenInclude(x=>x.Permission).SingleOrDefaultAsync(x=>x.Id==identity.UserId&&x.IsActive,cancellationToken);
         if(user is null){await transaction.RollbackAsync(cancellationToken);throw new InvalidRefreshTokenException();}
         dbContext.RefreshTokens.Add(new RefreshToken(identity.UserId,replacementHash,identity.FamilyId,requestStartedAt,requestStartedAt.AddDays(options.Value.RefreshTokenDays),identity.TenantId));
-        await dbContext.SaveChangesAsync(cancellationToken);await transaction.CommitAsync(cancellationToken);return BuildSession(user,raw,identity.TenantId);
+        await dbContext.SaveChangesAsync(cancellationToken);await transaction.CommitAsync(cancellationToken);return await BuildSession(user,raw,identity.TenantId,cancellationToken);
     }
 
     public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken)
@@ -137,7 +139,7 @@ public sealed class IdentityService(
         dbContext.RefreshTokens.Add(new RefreshToken(userId, replacementHash, stored.FamilyId, now,
             now.AddDays(options.Value.RefreshTokenDays), tenantId));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return BuildSession(stored.User, raw, tenantId);
+        return await BuildSession(stored.User, raw, tenantId, cancellationToken);
     }
 
     public async Task<CurrentUser?> GetUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -153,13 +155,19 @@ public sealed class IdentityService(
         user = await LoadUserAsync(user.NormalizedEmail, ct) ?? user;
         var raw = GenerateRefreshToken(); var now = timeProvider.GetUtcNow();
         dbContext.RefreshTokens.Add(new RefreshToken(user.Id, Hash(raw), familyId, now, now.AddDays(options.Value.RefreshTokenDays)));
-        await dbContext.SaveChangesAsync(ct); return BuildSession(user, raw);
+        await dbContext.SaveChangesAsync(ct); return await BuildSession(user, raw, null, ct);
     }
 
-    private AuthenticatedSession BuildSession(User user, string refreshToken, Guid? tenantId = null)
+    private async Task<AuthenticatedSession> BuildSession(User user, string refreshToken, Guid? tenantId, CancellationToken ct)
     {
         var roles = user.Roles.Select(x => x.Role.Name).Distinct().ToArray();
-        var access = tokenGenerator.Generate(user.Id, user.Email, roles, Permissions(user), tenantId);
+        // Global identity permissions always travel in the token. When a tenant is selected we also
+        // embed the tenant-scoped permissions from the same source of truth the tenant context
+        // middleware uses, so anything reading the JWT (e.g. the SPA sidebar) sees the real grants.
+        var permissions = Permissions(user).ToList();
+        if (tenantId.HasValue)
+            permissions.AddRange(await tenancy.GetPermissionsAsync(tenantId.Value, user.Id, ct));
+        var access = tokenGenerator.Generate(user.Id, user.Email, roles, permissions.Distinct().ToArray(), tenantId);
         return new AuthenticatedSession(access.Token, access.ExpiresAt, refreshToken);
     }
 

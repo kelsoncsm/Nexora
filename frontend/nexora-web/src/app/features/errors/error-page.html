@@ -1,0 +1,9 @@
+<div class="nx-errpage">
+  <div class="nx-errpage-code">{{ code() }}</div>
+  <h1>{{ copy().title }}</h1>
+  <p>{{ copy().message }}</p>
+  <div class="nx-errpage-actions">
+    <a class="nx-btn" routerLink="/">Ir para o início</a>
+    <button class="nx-btn nx-btn--secondary" type="button" (click)="back()">Voltar</button>
+  </div>
+</div>

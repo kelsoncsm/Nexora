@@ -1,0 +1,16 @@
+main {
+  display: block;
+}
+.nx-report-filter {
+  display: flex;
+  gap: var(--nx-space-4);
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: var(--nx-space-5);
+}
+.nx-report-filter .nx-form-group {
+  margin-bottom: 0;
+}
+.nx-report-filter .nx-form-control {
+  width: auto;
+}
