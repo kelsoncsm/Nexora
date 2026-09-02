@@ -105,7 +105,7 @@ public sealed partial class OnboardingService(NexoraDbContext db, TimeProvider c
 
     private Task<OnboardingDraft?> LoadForCompletionAsync(Guid userId, Guid draftId, CancellationToken cancellationToken) =>
         db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
-            ? db.OnboardingDrafts.FromSqlInterpolated($"SELECT * FROM onboarding_drafts WHERE \"Id\" = {draftId} AND \"UserId\" = {userId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken)
+            ? db.OnboardingDrafts.FromSqlInterpolated($"SELECT * FROM onboarding.onboarding_drafts WHERE \"Id\" = {draftId} AND \"UserId\" = {userId} FOR UPDATE").SingleOrDefaultAsync(cancellationToken)
             : db.OnboardingDrafts.SingleOrDefaultAsync(x => x.Id == draftId && x.UserId == userId, cancellationToken);
     private async Task<OnboardingCompletion> ExistingCompletionAsync(OnboardingDraft draft, CancellationToken cancellationToken)
     {

@@ -8,7 +8,7 @@ public sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
 {
     public void Configure(EntityTypeBuilder<Tenant> b)
     {
-        b.ToTable("tenants"); b.HasKey(x => x.Id);
+        b.ToTable("tenants", DatabaseSchemas.Tenancy); b.HasKey(x => x.Id);
         b.Property(x => x.Name).HasMaxLength(200).IsRequired();
         b.Property(x => x.Slug).HasMaxLength(100).IsRequired();
         b.Property(x => x.TimeZoneId).HasMaxLength(100).IsRequired();
@@ -21,7 +21,7 @@ public sealed class TenantUserConfiguration : IEntityTypeConfiguration<TenantUse
 {
     public void Configure(EntityTypeBuilder<TenantUser> b)
     {
-        b.ToTable("tenant_users"); b.HasKey(x => x.Id);
+        b.ToTable("tenant_users", DatabaseSchemas.Tenancy); b.HasKey(x => x.Id);
         b.HasIndex(x => new { x.TenantId, x.UserId }).IsUnique();
         b.HasIndex(x => new { x.UserId, x.IsActive });
         b.HasOne(x => x.Tenant).WithMany(x => x.Users).HasForeignKey(x => x.TenantId);
@@ -30,5 +30,5 @@ public sealed class TenantUserConfiguration : IEntityTypeConfiguration<TenantUse
     }
 }
 
-public sealed class TenantRoleConfiguration:IEntityTypeConfiguration<TenantRole>{public void Configure(EntityTypeBuilder<TenantRole>b){b.ToTable("tenant_roles");b.HasKey(x=>x.Id);b.Property(x=>x.Name).HasMaxLength(100).IsRequired();b.Property(x=>x.Description).HasMaxLength(300);b.HasIndex(x=>new{x.TenantId,x.Name}).IsUnique();b.HasOne(x=>x.Tenant).WithMany(x=>x.Roles).HasForeignKey(x=>x.TenantId);}}
-public sealed class TenantRolePermissionConfiguration:IEntityTypeConfiguration<TenantRolePermission>{public void Configure(EntityTypeBuilder<TenantRolePermission>b){b.ToTable("tenant_role_permissions");b.HasKey(x=>new{x.TenantRoleId,x.PermissionKey});b.Property(x=>x.PermissionKey).HasMaxLength(150);b.HasOne(x=>x.TenantRole).WithMany(x=>x.Permissions).HasForeignKey(x=>x.TenantRoleId);}}
+public sealed class TenantRoleConfiguration:IEntityTypeConfiguration<TenantRole>{public void Configure(EntityTypeBuilder<TenantRole>b){b.ToTable("tenant_roles", DatabaseSchemas.Tenancy);b.HasKey(x=>x.Id);b.Property(x=>x.Name).HasMaxLength(100).IsRequired();b.Property(x=>x.Description).HasMaxLength(300);b.HasIndex(x=>new{x.TenantId,x.Name}).IsUnique();b.HasOne(x=>x.Tenant).WithMany(x=>x.Roles).HasForeignKey(x=>x.TenantId);}}
+public sealed class TenantRolePermissionConfiguration:IEntityTypeConfiguration<TenantRolePermission>{public void Configure(EntityTypeBuilder<TenantRolePermission>b){b.ToTable("tenant_role_permissions", DatabaseSchemas.Tenancy);b.HasKey(x=>new{x.TenantRoleId,x.PermissionKey});b.Property(x=>x.PermissionKey).HasMaxLength(150);b.HasOne(x=>x.TenantRole).WithMany(x=>x.Permissions).HasForeignKey(x=>x.TenantRoleId);}}
