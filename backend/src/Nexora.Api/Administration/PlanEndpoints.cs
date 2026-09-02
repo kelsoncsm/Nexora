@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Nexora.Application.Plans;
 
 namespace Nexora.Api.Administration;
@@ -37,9 +38,15 @@ internal static class PlanEndpoints
         Guid planId,
         Guid featureId,
         AdministrationEndpoints.AccessConfiguration request,
+        ClaimsPrincipal user,
+        HttpContext http,
         IPlanCatalogService service,
         CancellationToken ct) =>
-        await service.ConfigurePlanFeatureAsync(planId, featureId, request.Enabled, request.Limit, ct) is { } plan
+        await service.ConfigurePlanFeatureAsync(UserId(user), planId, featureId, request.Enabled, request.Limit, http.TraceIdentifier, ct) is { } plan
             ? Results.Ok(plan)
             : Results.NotFound();
+
+    private static Guid UserId(ClaimsPrincipal principal) => Guid.Parse(
+        principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub")
+        ?? throw new InvalidOperationException("Subject claim is missing."));
 }

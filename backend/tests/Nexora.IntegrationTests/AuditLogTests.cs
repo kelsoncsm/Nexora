@@ -152,9 +152,146 @@ public sealed class AuditLogTests
         Assert.Equal(0, await CountAuditAsync(factory, "role.permissions_changed"));
     }
 
+    [Fact]
+    public async Task TenantFeatureOverrideConfigurationIsAudited()
+    {
+        await using var factory = new ApiFactory();
+        using var owner = factory.CreateClient();
+        using var admin = factory.CreateClient();
+        var (_, _, tenantId) = await SetUpTenantAsync(owner, "audit-ovr-owner@nexora.test", "audit-ovr");
+        await RegisterAsync(admin, "audit-ovr-admin@nexora.test");
+        var (_, featureId) = await SeedCatalogAsync(factory, "OVR");
+        await PromoteAsync(factory, "AUDIT-OVR-ADMIN@NEXORA.TEST");
+        var adminId = await UserIdAsync(factory, "AUDIT-OVR-ADMIN@NEXORA.TEST");
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await LoginAsync(admin, "audit-ovr-admin@nexora.test"));
+
+        (await admin.PutAsJsonAsync($"/api/v1/admin/tenants/{tenantId}/feature-overrides/{featureId}", new { enabled = true, limit = 100 })).EnsureSuccessStatusCode();
+
+        var entry = await SingleAuditAsync(factory, "tenant_feature_override.configured");
+        Assert.Equal(adminId, entry.ActorUserId);
+        Assert.Equal(tenantId, entry.TenantId);
+        var details = JsonSerializer.Deserialize<JsonElement>(entry.Details!);
+        Assert.Equal("REPORTS", details.GetProperty("featureCode").GetString());
+        Assert.True(details.GetProperty("newEnabled").GetBoolean());
+        Assert.Equal(100, details.GetProperty("newLimit").GetInt32());
+    }
+
+    [Fact]
+    public async Task PlanFeatureConfigurationIsAuditedGloballyWithNoTenant()
+    {
+        await using var factory = new ApiFactory();
+        using var admin = factory.CreateClient();
+        await RegisterAsync(admin, "audit-pf-admin@nexora.test");
+        var (planId, featureId) = await SeedCatalogAsync(factory, "PF");
+        await PromoteAsync(factory, "AUDIT-PF-ADMIN@NEXORA.TEST");
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await LoginAsync(admin, "audit-pf-admin@nexora.test"));
+
+        (await admin.PutAsJsonAsync($"/api/v1/admin/plans/{planId}/features/{featureId}", new { enabled = false, limit = (int?)null })).EnsureSuccessStatusCode();
+
+        var entry = await SingleAuditAsync(factory, "plan_feature.configured");
+        Assert.Null(entry.TenantId);
+        Assert.Equal(planId.ToString(), JsonSerializer.Deserialize<JsonElement>(entry.Details!).GetProperty("planId").GetString());
+    }
+
+    [Fact]
+    public async Task PlanFeatureConfigurationByANonAdminIsRejectedAndNotAudited()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        var (global, slug, _) = await SetUpTenantAsync(client, "audit-pf-403@nexora.test", "audit-pf-403");
+        var (planId, featureId) = await SeedCatalogAsync(factory, "PF403");
+        client.DefaultRequestHeaders.Authorization = await ScopedAsync(client, global, slug);
+
+        var response = await client.PutAsJsonAsync($"/api/v1/admin/plans/{planId}/features/{featureId}", new { enabled = true, limit = (int?)null });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(0, await CountAuditAsync(factory, "plan_feature.configured"));
+    }
+
+    [Fact]
+    public async Task CheckoutRequestIsAuditedWithoutSecrets()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        var (global, slug, tenantId) = await SetUpTenantAsync(client, "audit-checkout@nexora.test", "audit-checkout");
+        var planId = await SeedPaidSubscriptionAsync(factory, tenantId);
+        factory.PaymentGateway.CheckoutResult = new("mp-audit", Nexora.Domain.Billing.BillingPaymentStatus.Pending, "https://checkout.test/secret-url", "qr", DateTimeOffset.UtcNow);
+        client.DefaultRequestHeaders.Authorization = await ScopedAsync(client, global, slug);
+
+        (await client.PostAsJsonAsync("/api/v1/billing/checkout", new { paymentMethod = "Pix", payerEmail = "audit-checkout@nexora.test" })).EnsureSuccessStatusCode();
+
+        var entry = await SingleAuditAsync(factory, "billing.checkout_requested");
+        Assert.Equal(tenantId, entry.TenantId);
+        Assert.DoesNotContain("checkout.test", entry.Details!);
+        Assert.DoesNotContain("secret-url", entry.Details!);
+        var details = JsonSerializer.Deserialize<JsonElement>(entry.Details!);
+        Assert.Equal(planId.ToString(), details.GetProperty("planId").GetString());
+        Assert.Equal("Pix", details.GetProperty("paymentMethod").GetString());
+    }
+
+    [Fact]
+    public async Task AnIdempotentCheckoutRetryDoesNotDuplicateTheAuditEntry()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        var (global, slug, tenantId) = await SetUpTenantAsync(client, "audit-checkout-idem@nexora.test", "audit-checkout-idem");
+        await SeedPaidSubscriptionAsync(factory, tenantId);
+        factory.PaymentGateway.CheckoutResult = new("mp-idem", Nexora.Domain.Billing.BillingPaymentStatus.Pending, null, null, DateTimeOffset.UtcNow);
+        client.DefaultRequestHeaders.Authorization = await ScopedAsync(client, global, slug);
+
+        (await client.PostAsJsonAsync("/api/v1/billing/checkout", new { paymentMethod = "Pix", payerEmail = "audit-checkout-idem@nexora.test" })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/v1/billing/checkout", new { paymentMethod = "Pix", payerEmail = "audit-checkout-idem@nexora.test" })).EnsureSuccessStatusCode();
+
+        Assert.Equal(1, await CountAuditAsync(factory, "billing.checkout_requested"));
+    }
+
     // ---- helpers -----------------------------------------------------------------------------
 
     private sealed record SeededMember(Guid MembershipId, Guid RoleId, Guid UserId);
+
+    private static async Task<(Guid PlanId, Guid FeatureId)> SeedCatalogAsync(ApiFactory factory, string code)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+        await TestFeatureCatalog.SeedFeaturesAsync(db);
+        var featureId = await db.Features.Where(x => x.Code == "REPORTS").Select(x => x.Id).SingleAsync();
+        var plan = new Nexora.Domain.Plans.Plan(code, code, DateTimeOffset.UtcNow);
+        db.Plans.Add(plan);
+        await db.SaveChangesAsync();
+        return (plan.Id, featureId);
+    }
+
+    private static async Task<Guid> SeedPaidSubscriptionAsync(ApiFactory factory, Guid tenantId)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+        var now = DateTimeOffset.UtcNow;
+        var plan = new Nexora.Domain.Plans.Plan("CHECKOUT", "Checkout", now);
+        var sub = new Nexora.Domain.Billing.Subscription(tenantId, plan.Id, Nexora.Domain.Billing.BillingInterval.Monthly, now, TimeSpan.FromDays(14));
+        db.AddRange(plan, sub, new Nexora.Domain.Billing.PlanPrice(plan.Id, Nexora.Domain.Billing.BillingInterval.Monthly, "BRL", 50, now));
+        await db.SaveChangesAsync();
+        return plan.Id;
+    }
+
+    private static async Task PromoteAsync(ApiFactory factory, string normalizedEmail)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+        var user = await db.Users.SingleAsync(x => x.NormalizedEmail == normalizedEmail);
+        var role = new Nexora.Domain.Identity.Role("PlatformAdmin");
+        var permission = new Nexora.Domain.Identity.Permission("platform.access");
+        role.Permissions.Add(new Nexora.Domain.Identity.RolePermission(role.Id, permission.Id));
+        user.Roles.Add(new Nexora.Domain.Identity.UserRole(user.Id, role.Id));
+        db.AddRange(role, permission);
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task<string> LoginAsync(HttpClient client, string email)
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/identity/login", new { email, password = "Correct-Horse-42" });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<Token>())!.AccessToken;
+    }
 
     private static async Task<SeededMember> SeedMemberAsync(ApiFactory factory, Guid tenantId, string email, string roleName, string[] permissions)
     {

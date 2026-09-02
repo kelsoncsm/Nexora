@@ -27,8 +27,8 @@ internal static class TenantBillingEndpoints
 
         tenantBilling.MapPost(
                 "/checkout",
-                (CheckoutInput input, ITenantContext tenant, IBillingPaymentService service, CancellationToken ct) =>
-                    service.CreateCheckoutAsync(tenant.TenantId, input, ct))
+                (CheckoutInput input, ITenantContext tenant, HttpContext http, IBillingPaymentService service, CancellationToken ct) =>
+                    service.CreateCheckoutAsync(tenant.UserId, tenant.TenantId, input, http.TraceIdentifier, ct))
             .RequireRateLimiting("checkout");
     }
 

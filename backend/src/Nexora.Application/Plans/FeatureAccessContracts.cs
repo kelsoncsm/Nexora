@@ -48,9 +48,9 @@ public interface IPlanCatalogService
     Task<IReadOnlyList<PlanView>> GetPlansAsync(CancellationToken cancellationToken);
     Task<PlanView> CreatePlanAsync(string code, string name, CancellationToken cancellationToken);
     Task<PlanView?> UpdatePlanAsync(Guid id, string name, bool active, bool isPublic, bool isTrialEligible, CancellationToken cancellationToken);
-    Task<PlanFeatureView?> ConfigurePlanFeatureAsync(Guid planId, Guid featureId, bool enabled, int? limit, CancellationToken cancellationToken);
+    Task<PlanFeatureView?> ConfigurePlanFeatureAsync(Guid actorUserId, Guid planId, Guid featureId, bool enabled, int? limit, string correlationId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OverrideView>> GetOverridesAsync(Guid tenantId, CancellationToken cancellationToken);
-    Task<OverrideView?> ConfigureOverrideAsync(Guid tenantId, Guid featureId, bool enabled, int? limit, CancellationToken cancellationToken);
+    Task<OverrideView?> ConfigureOverrideAsync(Guid actorUserId, Guid tenantId, Guid featureId, bool enabled, int? limit, string correlationId, CancellationToken cancellationToken);
 }
 public sealed class PlanCatalogValidationException(string message) : Exception(message);
 public sealed class PlanCatalogConflictException(string message) : Exception(message);

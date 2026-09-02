@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Nexora.Application.Administration;
 using Nexora.Application.Billing;
 using Nexora.Domain.Administration;
 using Nexora.Domain.Billing;
@@ -7,7 +8,7 @@ using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Billing;
 
-public sealed class BillingPaymentService(NexoraDbContext db,IPaymentGateway gateway,TimeProvider clock):IBillingPaymentService
+public sealed class BillingPaymentService(NexoraDbContext db,IPaymentGateway gateway,TimeProvider clock,IAuditLogWriter audit):IBillingPaymentService
 {
     private const string Currency="BRL";
     public async Task<PlanPriceView> SetPriceAsync(Guid actor,CreatePlanPriceInput input,string correlationId,CancellationToken ct)
@@ -21,7 +22,7 @@ public sealed class BillingPaymentService(NexoraDbContext db,IPaymentGateway gat
     }
     public async Task<IReadOnlyList<PlanPriceView>> GetPricesAsync(CancellationToken ct)=>await db.PlanPrices.OrderByDescending(x=>x.CreatedAt).Select(x=>new PlanPriceView(x.Id,x.PlanId,x.BillingInterval,x.Currency,x.Amount,x.IsActive,x.CreatedAt)).ToArrayAsync(ct);
 
-    public async Task<CheckoutView> CreateCheckoutAsync(Guid tenantId,CheckoutInput input,CancellationToken ct)
+    public async Task<CheckoutView> CreateCheckoutAsync(Guid actorUserId,Guid tenantId,CheckoutInput input,string correlationId,CancellationToken ct)
     {
         if(string.IsNullOrWhiteSpace(input.PayerEmail))throw new PaymentValidationException("Payer email is required.");
         var requestStartedAt=clock.GetUtcNow();await using var transaction=await BeginTransactionAsync(ct);
@@ -40,7 +41,12 @@ public sealed class BillingPaymentService(NexoraDbContext db,IPaymentGateway gat
         var existing=await db.BillingPayments.SingleOrDefaultAsync(x=>x.Gateway==gateway.Provider&&x.ExternalPaymentId==result.ExternalPaymentId,ct);
         if(existing is not null){await CommitAsync(transaction,ct);return Checkout(invoice,existing,result.CheckoutUrl,result.QrCode);}
         var payment=new BillingPayment(invoice.Id,gateway.Provider,result.ExternalPaymentId,input.PaymentMethod,result.Status,invoice.Amount,invoice.Currency,result.UpdatedAt,requestStartedAt);
-        db.Add(payment);ApplyFinancialState(subscription,invoice,payment,result.Status,requestStartedAt);await Save(ct);await CommitAsync(transaction,ct);return Checkout(invoice,payment,result.CheckoutUrl,result.QrCode);
+        db.Add(payment);ApplyFinancialState(subscription,invoice,payment,result.Status,requestStartedAt);
+        // A new gateway checkout was actually created (ADR-0021). The idempotent short-circuits above
+        // do not audit. Ids/amount only — never the checkout url, token or gateway payload.
+        audit.Record(actorUserId,AuditActions.CheckoutRequested,"BillingInvoice",invoice.Id.ToString(),correlationId,tenantId,
+            new{subscriptionId=subscription.Id,invoiceId=invoice.Id,planId=subscription.PlanId,amount=invoice.Amount,currency=invoice.Currency,paymentMethod=input.PaymentMethod});
+        await Save(ct);await CommitAsync(transaction,ct);return Checkout(invoice,payment,result.CheckoutUrl,result.QrCode);
     }
 
     public async Task<bool> ProcessWebhookAsync(string eventId,string eventType,string externalPaymentId,CancellationToken ct)
