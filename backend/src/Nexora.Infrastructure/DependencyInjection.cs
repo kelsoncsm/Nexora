@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<ITenantContextInitializer>(x => x.GetRequiredService<TenantContext>());
         services.AddScoped<ITenancyService, TenancyService>();
         services.AddScoped<IAdministrationService, AdministrationService>();
+        services.AddScoped<IAuditLogWriter, AuditLogWriter>();
         services.AddScoped<IPlatformAdminBootstrapper, PlatformAdminBootstrapper>();
         services.AddScoped<PersistentTenantPlanProvider>();
         services.AddScoped<ITenantPlanProvider>(x=>x.GetRequiredService<PersistentTenantPlanProvider>());

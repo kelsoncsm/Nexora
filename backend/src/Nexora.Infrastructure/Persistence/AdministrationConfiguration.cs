@@ -23,7 +23,9 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         b.Property(x => x.TargetType).HasMaxLength(100).IsRequired();
         b.Property(x => x.TargetId).HasMaxLength(100).IsRequired();
         b.Property(x => x.CorrelationId).HasMaxLength(100).IsRequired();
+        b.Property(x => x.Details).HasColumnType("jsonb");
         b.HasIndex(x => x.OccurredAt); b.HasIndex(x => x.ActorUserId);
         b.HasOne<Nexora.Domain.Identity.User>().WithMany().HasForeignKey(x => x.ActorUserId).OnDelete(DeleteBehavior.Restrict);
+        // TenantId has no FK: the audit log is append-only and must outlive the entities it references.
     }
 }

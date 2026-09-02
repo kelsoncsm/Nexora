@@ -50,7 +50,7 @@ public sealed class AdministrationService(NexoraDbContext db, TimeProvider timeP
 
     public async Task<IReadOnlyList<AuditView>> GetAuditAsync(CancellationToken ct) => await db.AuditLogs
         .OrderByDescending(x => x.OccurredAt).Take(200)
-        .Select(x => new AuditView(x.Id, x.ActorUserId, x.Action, x.TargetType, x.TargetId, x.Succeeded, x.CorrelationId, x.OccurredAt)).ToListAsync(ct);
+        .Select(x => new AuditView(x.Id, x.ActorUserId, x.TenantId, x.Action, x.TargetType, x.TargetId, x.Succeeded, x.CorrelationId, x.Details, x.OccurredAt)).ToListAsync(ct);
 
     private static void Validate(string code, string name)
     { if (code.Length is < 2 or > 50 || name.Length is < 2 or > 120) throw new AdministrationValidationException("Segment code or name is invalid."); }

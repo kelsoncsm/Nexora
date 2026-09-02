@@ -26,7 +26,7 @@ tenant-facing. Com o enforcement de plano em runtime (ADR-0019) e billing/member
 | Configurar `TenantFeatureOverride` | `tenant_feature_override.configured` | tenant (o tenant alvo) | platform admin | `featureCode`, `oldEnabled`, `newEnabled`, `oldLimit`, `newLimit` |
 | Configurar `PlanFeature` | `plan_feature.configured` | **global** (`TenantId = null`) | platform admin | `planId`, `featureCode`, `oldEnabled`, `newEnabled`, `oldLimit`, `newLimit` |
 | Solicitar checkout | `billing.checkout_requested` | tenant | usuário autenticado | `subscriptionId`, `invoiceId`, `planId`, `amount`, `currency`, `paymentMethod` |
-| Ações administrativas de subscription | `subscription.*` (já existiam) | tenant (agora com `TenantId`) | platform admin | string herdada de `SubscriptionService` |
+| Ações administrativas de subscription | `subscription.*` (já existiam) | tenant (agora com `TenantId`) | platform admin | sem `Details` — o detalhe fica em `SubscriptionEvent` (coluna `text`) |
 
 **Não auditadas** (decisão explícita):
 - Transições de subscription feitas por webhook/worker de sistema — já cobertas por

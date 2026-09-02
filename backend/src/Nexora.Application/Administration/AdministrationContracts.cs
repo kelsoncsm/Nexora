@@ -14,8 +14,31 @@ public sealed record AdminDashboard(int TotalTenants, int ActiveTenants, int Tot
 public sealed record AdminTenant(Guid Id, string Name, string Slug, bool IsActive, DateTimeOffset CreatedAt);
 public sealed record AdminUser(Guid Id, string Email, bool IsActive, DateTimeOffset CreatedAt);
 public sealed record SegmentView(Guid Id, string Code, string Name, bool IsActive, DateTimeOffset CreatedAt);
-public sealed record AuditView(Guid Id, Guid ActorUserId, string Action, string TargetType, string TargetId,
-    bool Succeeded, string CorrelationId, DateTimeOffset OccurredAt);
+public sealed record AuditView(Guid Id, Guid ActorUserId, Guid? TenantId, string Action, string TargetType, string TargetId,
+    bool Succeeded, string CorrelationId, string? Details, DateTimeOffset OccurredAt);
+
+/// <summary>Stable audit action codes (ADR-0021). Never inline these strings in services.</summary>
+public static class AuditActions
+{
+    public const string MemberRoleChanged = "member.role_changed";
+    public const string MemberDeactivated = "member.deactivated";
+    public const string RolePermissionsChanged = "role.permissions_changed";
+    public const string TenantFeatureOverrideConfigured = "tenant_feature_override.configured";
+    public const string PlanFeatureConfigured = "plan_feature.configured";
+    public const string CheckoutRequested = "billing.checkout_requested";
+}
+
+/// <summary>
+/// Records an audit entry on the current unit of work (ADR-0021). The row is added to the same
+/// DbContext as the business mutation and persisted by the caller's SaveChanges/transaction — so a
+/// rolled-back mutation leaves no audit trail. <paramref name="details"/> is serialised to JSON;
+/// pass ids and codes only, never secrets or unnecessary PII.
+/// </summary>
+public interface IAuditLogWriter
+{
+    void Record(Guid actorUserId, string action, string targetType, string targetId,
+        string correlationId, Guid? tenantId = null, object? details = null);
+}
 
 public interface IAdministrationService
 {
