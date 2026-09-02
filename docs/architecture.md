@@ -45,7 +45,7 @@ O frontend oferece UX, mas não é autoridade para autenticação, autorização
 
 ## Persistência
 
-PostgreSQL será o banco principal e Entity Framework Core o ORM. O modelo inicial usa banco e tabelas compartilhados; dados tenant-scoped carregam `TenantId`. Mudanças de schema serão migrations versionadas. Índices serão definidos por consultas reais, com atenção a chaves iniciadas por `TenantId`.
+PostgreSQL será o banco principal e Entity Framework Core o ORM. O modelo usa banco e tabelas compartilhados; dados tenant-scoped carregam `TenantId`. As tabelas são organizadas por schema PostgreSQL, um por bounded context (ADR-0020) — isso não é isolamento de tenant (continua por `TenantId`), só organização física. Mudanças de schema serão migrations versionadas. Índices serão definidos por consultas reais, com atenção a chaves iniciadas por `TenantId`.
 
 ## Configurabilidade
 
