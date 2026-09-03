@@ -8,6 +8,7 @@ import { tenantGuard } from './core/auth/tenant.guard';
 import { AuthService } from './core/auth/auth.service';
 import { ErrorPage } from './features/errors/error-page';
 import { TeamPage } from './features/team/team-page';
+import { InvitationAcceptPage } from './features/identity/invitation-accept-page';
 import { ProfilePage } from './features/identity/profile-page';
 import { EmpresaPage } from './features/tenant/empresa-page';
 import { RolesPage } from './features/tenant/roles-page';
@@ -28,6 +29,13 @@ describe('app routes', () => {
     expect(paths).toContain('permissoes');
     expect(paths).toContain('403');
     expect(paths).toContain('erro');
+    expect(paths).toContain('convite/aceitar');
+  });
+
+  it('exposes the invitation-accept page with no guards (anonymous flow)', () => {
+    const route = routes.find(r => r.path === 'convite/aceitar')!;
+    expect(route.component).toBe(InvitationAcceptPage);
+    expect(route.canActivate).toBeUndefined();
   });
 
   it('binds /equipe and /perfil to their pages, /equipe also behind the tenant guard', () => {

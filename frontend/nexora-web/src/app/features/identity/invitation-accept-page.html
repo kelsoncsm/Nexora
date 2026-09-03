@@ -1,0 +1,86 @@
+<div class="nx-authwrap">
+  <aside class="nx-auth-aside">
+    <div>
+      <span class="nx-brand-mark">N</span>
+      <h2 style="margin-top: var(--nx-space-4)">Você foi convidado para uma empresa no Nexora.</h2>
+      <p>
+        Defina sua senha para aceitar o convite. Se você já tem conta no Nexora, informe a senha
+        atual dela.
+      </p>
+      <ul class="nx-auth-points">
+        <li><svg class="nx-ico"><use href="#i-building" /></svg>Acesso imediato após aceitar</li>
+        <li><svg class="nx-ico"><use href="#i-lock" /></svg>O link do convite é de uso único</li>
+      </ul>
+    </div>
+    <p class="nx-auth-note">Plataforma MultiNicho · dados isolados por empresa</p>
+  </aside>
+
+  <div class="nx-auth-panel">
+    <section class="nx-auth" aria-labelledby="accept-title">
+      <div class="nx-auth-brand">
+        <span class="nx-brand-mark">N</span>
+        <span><strong>Nexora</strong><small>Plataforma MultiNicho</small></span>
+      </div>
+
+      @if (done(); as d) {
+        <h1 id="accept-title">Convite aceito!</h1>
+        <p class="nx-auth-sub">
+          Você agora faz parte de <strong>{{ d.tenantName }}</strong>. Entre com seu e-mail e senha
+          para acessar.
+        </p>
+        <button type="button" class="nx-btn nx-btn--block" (click)="goToLogin()">Ir para o login</button>
+      } @else {
+        <h1 id="accept-title">Aceitar convite</h1>
+        <p class="nx-auth-sub">Defina a senha da sua conta Nexora para concluir.</p>
+
+        @if (!token) {
+          <p class="nx-form-error" role="alert">
+            Link de convite inválido. Peça um novo convite ao administrador da empresa.
+          </p>
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="nx-form-group">
+              <label class="nx-form-label" for="password">Senha</label>
+              <div class="nx-input-icon">
+                <svg class="nx-ico"><use href="#i-lock" /></svg>
+                <input
+                  class="nx-form-control"
+                  id="password"
+                  type="password"
+                  formControlName="password"
+                  autocomplete="new-password"
+                  placeholder="••••••••••••"
+                />
+              </div>
+              <p class="nx-form-hint">Pelo menos 12 caracteres. Conta existente: informe a senha atual.</p>
+            </div>
+            <div class="nx-form-group">
+              <label class="nx-form-label" for="passwordConfirmation">Confirmar senha</label>
+              <div class="nx-input-icon">
+                <svg class="nx-ico"><use href="#i-lock" /></svg>
+                <input
+                  class="nx-form-control"
+                  id="passwordConfirmation"
+                  type="password"
+                  formControlName="passwordConfirmation"
+                  autocomplete="new-password"
+                  placeholder="••••••••••••"
+                />
+              </div>
+            </div>
+            @if (error()) {
+              <p class="nx-form-error" role="alert">{{ error() }}</p>
+            }
+            <button type="submit" class="nx-btn nx-btn--block" [disabled]="busy()">
+              {{ busy() ? 'Aguarde…' : 'Aceitar convite' }}
+            </button>
+          </form>
+        }
+      }
+
+      <div class="nx-auth-foot">
+        Já tem uma conta? <a routerLink="/login">Fazer login</a>
+      </div>
+    </section>
+  </div>
+</div>

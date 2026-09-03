@@ -13,6 +13,7 @@ export * from './nx-modal';
 export * from './nx-confirm-dialog';
 export * from './nx-data-table';
 export * from './nx-form-field';
+export * from './nx-toast';
 export * from './shell/nav';
 export * from './shell/nx-sidebar';
 export * from './shell/nx-topbar';

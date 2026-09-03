@@ -3,6 +3,7 @@ import { authGuard } from './core/auth/auth.guard';
 import { tenantGuard } from './core/auth/tenant.guard';
 import { featureGuard } from './core/auth/feature.guard';
 import { AuthPage } from './features/identity/auth-page';
+import { InvitationAcceptPage } from './features/identity/invitation-accept-page';
 import { HomePage } from './features/identity/home-page';
 import { TenantSelectPage } from './features/identity/tenant-select-page';
 import { ProfilePage } from './features/identity/profile-page';
@@ -28,6 +29,7 @@ export const routes: Routes = [
   { path: '', component: HomePage, canActivate: [authGuard] },
   { path: 'login', component: AuthPage, data: { mode: 'login' } },
   { path: 'cadastro', component: AuthPage, data: { mode: 'register' } },
+  { path: 'convite/aceitar', component: InvitationAcceptPage },
   { path: 'selecionar-empresa', component: TenantSelectPage, canActivate: [authGuard] },
   { path: 'onboarding', component: OnboardingPage, canActivate: [authGuard] },
   { path: 'configuracao-inicial', component: VerticalSetupPage, canActivate: [authGuard, tenantGuard] },

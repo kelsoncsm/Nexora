@@ -109,13 +109,21 @@ describe('App sidebar gating (permission AND feature)', () => {
     expect(items).not.toContain('Clientes');
   });
 
-  it('shows team and billing only with tenant.manage (audit P2.1/P2.2)', () => {
-    const withManage = navItems(buildAuth({ permissions: () => ['tenant.manage'] }));
-    expect(withManage).toContain('Usuários e Equipe');
-    expect(withManage).toContain('Plano e Assinatura');
+  it('shows billing with tenant.manage and the team with tenant.members.read', () => {
+    // A tenant.manage role is backfilled with tenant.members.* (migration 20260902150000), so in
+    // practice it sees both; the nav gates them on their own keys.
+    const full = navItems(buildAuth({ permissions: () => ['tenant.manage', 'tenant.members.read'] }));
+    expect(full).toContain('Usuários e Equipe');
+    expect(full).toContain('Plano e Assinatura');
   });
 
-  it('hides team and billing without tenant.manage, keeping Configurações', () => {
+  it('shows the team to a custom role holding only tenant.members.read (no billing)', () => {
+    const memberViewer = navItems(buildAuth({ permissions: () => ['tenant.members.read'] }));
+    expect(memberViewer).toContain('Usuários e Equipe');
+    expect(memberViewer).not.toContain('Plano e Assinatura');
+  });
+
+  it('hides team and billing without any tenant admin permission, keeping Configurações', () => {
     const withoutManage = navItems(buildAuth({ permissions: () => ['customers.read'] }));
     expect(withoutManage).not.toContain('Usuários e Equipe');
     expect(withoutManage).not.toContain('Plano e Assinatura');

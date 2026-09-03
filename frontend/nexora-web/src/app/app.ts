@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { APP_CONFIG } from './core/config/app-config';
 import { NxSidebar } from './shared/ui/shell/nx-sidebar';
 import { NxTopbar } from './shared/ui/shell/nx-topbar';
+import { NxToastHost } from './shared/ui/nx-toast';
 import { NxNavGroup, NxShellPlan, NxShellUser } from './shared/ui/shell/nav';
 
 interface ShellPlan {
@@ -15,7 +16,7 @@ interface ShellPlan {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, NxSidebar, NxTopbar],
+  imports: [RouterOutlet, NxSidebar, NxTopbar, NxToastHost],
   templateUrl: './app.html',
 })
 export class App {
@@ -32,7 +33,7 @@ export class App {
   readonly showShell = computed(
     () =>
       this.auth.isAuthenticated() &&
-      !['/login', '/cadastro'].includes(this.currentUrl().split('?')[0]),
+      !['/login', '/cadastro', '/convite/aceitar'].includes(this.currentUrl().split('?')[0]),
   );
   readonly tenantLabel = computed(() =>
     this.auth.tenantId()
@@ -120,12 +121,14 @@ export class App {
       if (this.allowed('services.read', 'SERVICES')) principal.push({ label: 'Serviços', route: '/servicos', icon: 'i-scissors' });
       if (this.allowed('reports.read', 'REPORTS')) principal.push({ label: 'Relatórios', route: '/relatorios', icon: 'i-chart' });
       const gestao = [{ label: 'Configurações', route: '/configuracoes', icon: 'i-gear' }];
-      // Listing members and viewing/managing billing require tenant.manage on the backend.
+      // Billing still requires the coarse tenant.manage; member management has its own CRUD keys.
       if (this.has('tenant.manage')) {
-        gestao.unshift(
-          { label: 'Usuários e Equipe', route: '/equipe', icon: 'i-user' },
-          { label: 'Plano e Assinatura', route: '/assinatura', icon: 'i-card' },
-        );
+        gestao.unshift({ label: 'Plano e Assinatura', route: '/assinatura', icon: 'i-card' });
+      }
+      // Viewing the team / invitations needs tenant.members.read (backfilled onto every
+      // tenant.manage role, but a custom role can hold it on its own).
+      if (this.has('tenant.members.read')) {
+        gestao.unshift({ label: 'Usuários e Equipe', route: '/equipe', icon: 'i-user' });
       }
       groups.push({ label: 'GESTÃO', items: gestao });
     }

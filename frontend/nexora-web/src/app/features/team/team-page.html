@@ -1,10 +1,11 @@
-<nx-page-header title="Usuários e Equipe" subtitle="Gerencie quem tem acesso a esta empresa." />
+<nx-page-header title="Usuários e Equipe" subtitle="Gerencie quem tem acesso a esta empresa.">
+  @if (canInvite()) {
+    <button nx-button icon="i-plus" (click)="openInvite()">Incluir usuário</button>
+  }
+</nx-page-header>
 
 @if (error()) {
   <div class="nx-alert nx-alert--danger">{{ error() }}</div>
-}
-@if (saved()) {
-  <div class="nx-alert nx-alert--success">Papel do membro atualizado.</div>
 }
 
 <div class="nx-list-toolbar">
@@ -33,12 +34,13 @@
             <span class="nx-table-person"><nx-avatar [name]="m.email" />{{ m.email }}</span>
           </td>
           <td data-label="Papel">
-            @if (canManage() && m.isActive) {
+            @if (canUpdateRole() && m.isActive) {
               <select
                 class="nx-form-control nx-role-select"
                 [ngModel]="m.roleId"
                 (ngModelChange)="assign(m, $event)"
                 [disabled]="busyId() === m.id"
+                aria-label="Papel do membro"
               >
                 @for (r of roles(); track r.id) {
                   <option [value]="r.id">{{ r.name }}</option>
@@ -54,9 +56,9 @@
             </nx-badge>
           </td>
           <td class="nx-table-cell-actions">
-            @if (m.isActive) {
+            @if (m.isActive && canRemove()) {
               <span class="nx-row-actions">
-                <button type="button" class="danger" (click)="confirming.set(m)" aria-label="Desativar acesso">
+                <button type="button" class="danger" (click)="confirming.set(m)" aria-label="Desativar acesso" title="Desativar acesso">
                   <svg class="nx-ico"><use href="#i-logout" /></svg>
                 </button>
               </span>
@@ -68,10 +70,133 @@
   </table>
 
   <p footer class="nx-count-hint">
-    Convite e criação de novos usuários ainda não estão disponíveis nesta versão. Alterar papel e
-    desativar acesso exigem permissão de gestão.
+    Alterar papel exige <b>tenant.members.update</b>; desativar acesso, <b>tenant.members.delete</b>;
+    convidar novos usuários, <b>tenant.members.create</b>.
   </p>
 </nx-data-table>
+
+@if (canRead() && pendingInvitations().length) {
+  <section class="nx-section">
+    <h2 class="nx-section-title">Convites pendentes</h2>
+    <nx-data-table [empty]="false">
+      <table class="nx-table">
+        <thead>
+          <tr>
+            <th>E-mail</th>
+            <th>Papel</th>
+            <th>Status</th>
+            <th>Convidado por</th>
+            <th>Expira</th>
+            <th><span class="nx-sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (inv of pendingInvitations(); track inv.id) {
+            <tr>
+              <td data-label="E-mail">
+                <span class="nx-table-person"><nx-avatar [name]="inv.email" />{{ inv.email }}</span>
+              </td>
+              <td data-label="Papel"><nx-badge>{{ inv.roleName }}</nx-badge></td>
+              <td data-label="Status">
+                <nx-badge [tone]="inv.status === 'Expired' ? 'danger' : 'info'">
+                  {{ inv.status === 'Expired' ? 'Expirado' : 'Pendente' }}
+                </nx-badge>
+              </td>
+              <td data-label="Convidado por">{{ inv.invitedByEmail }}</td>
+              <td data-label="Expira">{{ inv.expiresAt | date: 'dd/MM/yyyy' }}</td>
+              <td class="nx-table-cell-actions">
+                <span class="nx-row-actions">
+                  @if (canInvite()) {
+                    <button
+                      type="button"
+                      (click)="resend(inv)"
+                      [disabled]="busyId() === inv.id"
+                      aria-label="Reenviar convite"
+                      title="Reenviar convite"
+                    >
+                      <svg class="nx-ico"><use href="#i-repeat" /></svg>
+                    </button>
+                  }
+                  @if (canRemove()) {
+                    <button
+                      type="button"
+                      class="danger"
+                      (click)="cancelling.set(inv)"
+                      [disabled]="busyId() === inv.id"
+                      aria-label="Cancelar convite"
+                      title="Cancelar convite"
+                    >
+                      <svg class="nx-ico"><use href="#i-trash" /></svg>
+                    </button>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p footer class="nx-count-hint">
+        Reenviar gera um novo link e invalida o anterior. Cancelar impede o aceite.
+      </p>
+    </nx-data-table>
+  </section>
+}
+
+@if (inviteOpen()) {
+  <nx-modal title="Incluir usuário" [small]="true" (close)="inviteOpen.set(false)">
+    <form (ngSubmit)="submitInvite()">
+      <nx-form-field label="E-mail" for="inv-email" [error]="inviteError()">
+        <input
+          id="inv-email"
+          type="email"
+          class="nx-form-control"
+          [ngModel]="inviteEmail()"
+          (ngModelChange)="inviteEmail.set($event)"
+          name="email"
+          autocomplete="off"
+          maxlength="320"
+          required
+        />
+      </nx-form-field>
+      <nx-form-field
+        label="Papel"
+        for="inv-role"
+        hint="Só aparecem os papéis que você tem autoridade para conceder."
+      >
+        <select
+          id="inv-role"
+          class="nx-form-control"
+          [ngModel]="inviteRoleId()"
+          (ngModelChange)="inviteRoleId.set($event)"
+          name="roleId"
+          required
+        >
+          @for (r of assignableRoles(); track r.id) {
+            <option [value]="r.id">{{ r.name }}{{ r.isSystem ? ' (sistema)' : '' }}</option>
+          }
+        </select>
+      </nx-form-field>
+      @if (!assignableRoles().length) {
+        <p class="nx-form-hint">
+          Você não tem autoridade para conceder nenhum papel. Peça a um administrador.
+        </p>
+      }
+      <button type="submit" hidden></button>
+    </form>
+    <div footer>
+      <button type="button" class="nx-btn nx-btn--secondary" (click)="inviteOpen.set(false)">Cancelar</button>
+      <button
+        type="button"
+        nx-button
+        [loading]="inviteBusy()"
+        [disabled]="!inviteEmail().trim() || !inviteRoleId()"
+        (click)="submitInvite()"
+      >
+        Enviar convite
+      </button>
+    </div>
+  </nx-modal>
+}
 
 @if (confirming(); as m) {
   <nx-confirm-dialog
@@ -82,5 +207,17 @@
     (cancel)="confirming.set(null)"
   >
     <b>{{ m.email }}</b> perderá o acesso a esta empresa imediatamente.
+  </nx-confirm-dialog>
+}
+
+@if (cancelling(); as inv) {
+  <nx-confirm-dialog
+    title="Cancelar convite?"
+    confirmLabel="Cancelar convite"
+    [danger]="true"
+    (confirm)="cancel(inv)"
+    (cancel)="cancelling.set(null)"
+  >
+    O link enviado para <b>{{ inv.email }}</b> deixará de funcionar.
   </nx-confirm-dialog>
 }
