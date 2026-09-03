@@ -54,7 +54,8 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
 
     public async Task<bool> DeactivateMembershipAsync(Guid tenantId, Guid actorUserId, Guid membershipId, string correlationId, CancellationToken ct)
     {
-        var canManage = await dbContext.TenantUsers.AnyAsync(x => x.TenantId == tenantId && x.UserId == actorUserId && x.IsActive && x.TenantRole.Permissions.Any(p=>p.PermissionKey==TenantPermissions.TenantManage), ct);
+        // Defence in depth behind the endpoint's tenant.members.delete filter.
+        var canManage = await dbContext.TenantUsers.AnyAsync(x => x.TenantId == tenantId && x.UserId == actorUserId && x.IsActive && x.TenantRole.Permissions.Any(p=>p.PermissionKey==TenantPermissions.MembersDelete), ct);
         if (!canManage) return false;
         var membership = await dbContext.TenantUsers.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.Id == membershipId, ct);
         if (membership is null) return false;
@@ -69,8 +70,15 @@ public sealed partial class TenancyService(NexoraDbContext dbContext, TimeProvid
     public async Task<bool> AssignRoleAsync(Guid tenantId, Guid actorUserId, Guid membershipId, Guid roleId, string correlationId, CancellationToken ct)
     {
         var membership = await dbContext.TenantUsers.SingleOrDefaultAsync(x => x.Id == membershipId && x.TenantId == tenantId, ct);
-        var role = await dbContext.TenantRoles.SingleOrDefaultAsync(x => x.Id == roleId && x.TenantId == tenantId, ct);
+        var role = await dbContext.TenantRoles.Include(x => x.Permissions)
+            .SingleOrDefaultAsync(x => x.Id == roleId && x.TenantId == tenantId, ct);
         if (membership is null || role is null) return false;
+        // No privilege escalation: the actor can only move a member onto a role whose permissions
+        // are a subset of the actor's own (architectural decision 2026-09-02, no tenant.manage
+        // exception). Behind the endpoint's tenant.members.update filter.
+        var actorPermissions = await GetPermissionsAsync(tenantId, actorUserId, ct);
+        if (!RoleGrant.IsWithinActorAuthority(role.Permissions.Select(x => x.PermissionKey), actorPermissions))
+            throw new TenantForbiddenException("You cannot assign a role that grants permissions you do not hold.");
         var oldRoleId = membership.TenantRoleId;
         if (oldRoleId == role.Id) return true; // no-op, nothing to audit
         membership.AssignRole(role.Id);

@@ -36,6 +36,7 @@ public sealed class GlobalExceptionHandler(
             IdentityConflictException => (StatusCodes.Status409Conflict, exception.Message, []),
             TenantConflictException => (StatusCodes.Status409Conflict, exception.Message, []),
             TenantValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),
+            TenantForbiddenException => (StatusCodes.Status403Forbidden, exception.Message, []),
             AdministrationValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),
             AdministrationConflictException => (StatusCodes.Status409Conflict, exception.Message, []),
             PlanCatalogValidationException => (StatusCodes.Status400BadRequest, exception.Message, []),

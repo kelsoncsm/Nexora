@@ -88,6 +88,15 @@ public sealed partial class TenancyService
         if (role is null) return null;
         if (role.IsSystem) throw new TenantValidationException("System role permissions cannot be modified.");
         var keys = ValidatePermissionKeys(permissions);
+        // No privilege escalation: the resulting permission set of the role must be a subset of the
+        // actor's own effective permissions — the same RoleGrant invariant enforced on role
+        // assignment and invitations, with no tenant.manage or system-role exception. This closes the
+        // "edit an existing custom role to grant yourself (or others already on it) a permission you
+        // do not hold" path. Rejection happens before any write, so the persisted permissions are
+        // untouched.
+        var actorPermissions = await GetPermissionsAsync(tenantId, actorUserId, ct);
+        if (!RoleGrant.IsWithinActorAuthority(keys, actorPermissions))
+            throw new TenantForbiddenException("You cannot grant a role permissions that you do not hold.");
         var before = role.Permissions.Select(p => p.PermissionKey).ToHashSet(StringComparer.Ordinal);
         var added = keys.Where(k => !before.Contains(k)).ToArray();
         var removed = before.Where(k => !keys.Contains(k, StringComparer.Ordinal)).ToArray();
