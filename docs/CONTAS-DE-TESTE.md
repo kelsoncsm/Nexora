@@ -60,12 +60,12 @@ cd frontend/nexora-web && npm start
 **Essenciais** para cobrir a aplicação inteira: **#1, #3, #4**.
 As contas **#5–#8** só são necessárias para validar telas sob papéis com permissões reduzidas.
 
-> **Por que uma empresa por papel?** O Nexora ainda **não tem convite/criação de
-> usuário dentro da empresa** (a tela de Equipe diz "não disponível nesta versão").
-> Uma empresa tem sempre **um único membro: quem a criou (ADMIN)**. Para testar um
-> papel não‑ADMIN você **rebaixa o próprio dono** da empresa para aquele papel — e aí
-> perde `tenant.manage` e não consegue voltar pela UI. Por isso cada papel reduzido
-> tem a sua própria empresa/dono descartável.
+> **Por que uma empresa por papel?** O Nexora agora **tem convite de usuário dentro da
+> empresa** (tela de Equipe → "Incluir usuário" + `/convite/aceitar`), mas quem convida só
+> pode conceder um papel **cujas permissões são um subconjunto das suas** (regra de não
+> escalonamento). Para testar um papel não‑ADMIN de forma isolada continua sendo mais
+> simples cada papel ter a sua própria empresa/dono descartável — assim você não precisa
+> de um segundo ADMIN para promover/rebaixar ninguém.
 
 ---
 
@@ -159,7 +159,7 @@ professionals.read, services.read
 | `/`, `/agenda`, `/clientes` | OK |
 | `/profissionais`, `/servicos` | item **não aparece** na sidebar (falta `professionals.read`? — aparece; `services.read`? — aparece). Ver: sim. Criar/editar: **403** |
 | `/relatorios` | item some da sidebar (sem `reports.read`); rota abre mas `GET /reports/overview` → **403** |
-| `/equipe` | abre (grupo "Gestão" é visível a qualquer sessão de tenant); trocar papel / desativar membro → **403** (falta `tenant.manage`) |
+| `/equipe` | item aparece só com `tenant.members.read`; incluir usuário exige `tenant.members.create`, trocar papel `tenant.members.update`, cancelar convite / desativar membro `tenant.members.delete` — sem a permissão a ação some da UI e o backend responde **403** |
 | `/empresa`, `/perfis`, `/permissoes` | cards do hub **escondidos**; rota abre mas `PUT/GET` → **403** |
 | `/assinatura` | abre (hoje sem gate de permissão — limitação conhecida P2.1) |
 

@@ -17,8 +17,8 @@
 | Sidebar | Hoje **navy** (`#171b2e`). Decisão nova: **migrar para sidebar clara** (Fase B). |
 | Telas de tenant | 18 migradas ao DS; faltam refinamentos e telas de administração. |
 | Administração de plataforma | 1 tela (`/admin`) com switcher interno cru — **não** segue o padrão "Configurações" do DentalFlow. |
-| Granularidade de permissão | **CRUD real existe** para `customers/professionals/services/appointments`. `reports` = só `read`. Administração de empresa = `tenant.manage` (sem CRUD). Plataforma = papel `PlatformAdmin` (sem permissões finas). |
-| Gaps bloqueantes de arquitetura | Nenhum para os módulos de domínio. Ver §7 (granularidade de `tenant.manage` e da plataforma). |
+| Granularidade de permissão | **CRUD real existe** para `customers/professionals/services/appointments` e para **`tenant.members.*`** (2026-09-03). `reports` = só `read`. Perfil/papéis/billing da empresa = `tenant.manage` (sem CRUD ainda). Plataforma = papel `PlatformAdmin` (sem permissões finas). |
+| Gaps bloqueantes de arquitetura | Nenhum. Ver §7 (split restante de `tenant.manage` em profile/roles/billing e granularidade da plataforma). |
 
 ---
 
@@ -75,12 +75,13 @@ Legenda de status: **EXISTE** · **INCOMPLETA** (tela existe, falta função/tel
 | Catálogo de permissões | `GET /tenant/permissions` | `/permissoes` | hub | EXISTE |
 | Listar papéis | `GET /tenant/roles` | `/perfis` (RolesPage) | hub | EXISTE |
 | Criar/editar papel | `POST/PUT /tenant/roles` | `/perfis` (NxModal) | hub | EXISTE (nome+descrição) |
+| Definir permissões de papel | `PUT /tenant/roles/{id}/permissions` | `/permissoes` | hub | EXISTE · rejeita conjunto fora da autoridade do ator (403, regra de não escalonamento — não dá para se auto-promover editando um papel) |
 | Ver permissões do papel | `GET /tenant/roles/{id}/permissions` | `/permissoes` | hub | EXISTE (checkboxes por módulo) |
 | Definir permissões do papel | `PUT /tenant/roles/{id}/permissions` | `/permissoes` | hub | EXISTE · **INCOMPLETA** (uma role por vez; falta a **matriz** perfil × módulo × ação pedida) |
-| Listar membros | `GET /tenant/members` | `/equipe` (TeamPage) | GESTÃO | EXISTE |
-| Atribuir papel a membro | `PATCH /tenant/members/{id}/role` | `/equipe` | GESTÃO | EXISTE |
-| Desativar membro | `PATCH /tenant/members/{id}/deactivate` | `/equipe` (NxConfirmDialog) | GESTÃO | EXISTE |
-| **Convidar/criar usuário na empresa** | — **não existe endpoint** | `/equipe` avisa "indisponível" | — | **GAP DE BACKED** (§7) |
+| Listar membros | `GET /tenant/members` | `/equipe` (TeamPage) | GESTÃO | EXISTE · gate `tenant.members.read` |
+| Atribuir papel a membro | `PATCH /tenant/members/{id}/role` | `/equipe` | GESTÃO | EXISTE · gate `tenant.members.update` + regra de não escalonamento |
+| Desativar membro | `PATCH /tenant/members/{id}/deactivate` | `/equipe` (NxConfirmDialog) | GESTÃO | EXISTE · gate `tenant.members.delete` |
+| **Convidar usuário na empresa** | `POST /tenant/members/invitations` (+ `resend`, `DELETE`, `accept` anônimo, `assignable-roles`) | `/equipe` modal "Incluir usuário" + convites pendentes + `/convite/aceitar` | GESTÃO | EXISTE · gate `tenant.members.create`/`delete`; token de uso único, auditado, sem escalonamento |
 
 ### 2.3 Módulos de domínio (tenant) — permissões CRUD reais
 
@@ -213,7 +214,7 @@ Pagination, Modal, ConfirmDialog, SearchInput, ChipFilter, Switch, Avatar, FormF
   `PUT /admin/plans/{planId}/features/{featureId}`, `GET /customers/{id}`, `GET /professionals/{id}`,
   `PUT/DELETE /professionals/{id}/services/{serviceId}`, `GET /subscriptions/{id}/events`,
   `GET /t/{slug}` (página pública).
-- **UI SEM ENDPOINT:** convite/criação de usuário dentro do tenant (TeamPage sinaliza "indisponível").
+- **UI SEM ENDPOINT:** nenhum (o convite de usuário no tenant passou a ter backend + UI em 2026-09-03).
 - **ROTAS SEM MENU:** `configuracao-inicial` (intencional — fluxo); `empresa`/`perfis`/`permissoes`
   (intencional — via hub).
 - **MENU SEM ROTA:** nenhum.
@@ -232,7 +233,7 @@ Pagination, Modal, ConfirmDialog, SearchInput, ChipFilter, Switch, Avatar, FormF
 | **C** | Dashboard `/` no padrão DF | ⬜ |
 | **D** | `/admin` workspace no padrão "Configurações" DF (`NxSettingsLayout`) | ⬜ |
 | **E** | Empresas/Tenants — detalhe, feature-overrides, modais, confirmações | ⬜ |
-| **F** | Usuários (plataforma) + refino de membros do tenant | ⬜ |
+| **F** | Usuários (plataforma) + refino de membros do tenant | PARCIAL — convite de membro do tenant (modal + pendentes + `/convite/aceitar`) feito 2026-09-03; usuários da plataforma ⬜ |
 | **G** | Perfis e Permissões — `NxPermissionMatrix` (perfil × módulo × ação) | ⬜ (ver §7) |
 | **H** | Serviços — CRUD refinado (duração, preço, ativo) | ⬜ |
 | **I** | Profissionais — CRUD + vínculo de serviços | ⬜ |
@@ -255,9 +256,9 @@ A tarefa pede, para cada módulo, permissões **Consultar / Incluir / Editar / E
 | `customers` / `professionals` / `services` | **CRUD completo** já existe | CRUD | ✅ construir a UI direto sobre `TenantPermissions.Catalog` |
 | `appointments` | `read/create/update/**cancel**` (sem `delete`) | CRUD | ✅ mapear "Excluir" → ausente; expor "Cancelar" |
 | `reports` | só `read` | Consultar | ✅ só checkbox "Consultar" |
-| **Administração da empresa** (`/empresa`, `/perfis`, `/permissoes`, `/equipe`, billing) | **gate único `tenant.manage`** | CRUD por sub-área | ⚠️ **GAP**. Não inventar `tenant.roles.create` etc. no front. Opções: (a) manter `tenant.manage` como um único item "Administrar empresa" na matriz; (b) o backend introduzir `tenant.members.*`, `tenant.roles.*`, `tenant.billing.*`, `tenant.profile.*`. **Decisão do Kelson necessária antes de mexer.** |
+| **Gestão de membros** (`/equipe`) | **`tenant.members.{read,create,update,delete}`** — CRUD real (2026-09-03) | CRUD por ação | ✅ resolvido. A matriz representa cada uma das quatro chaves; o convite de usuário tem UI. |
+| **Administração da empresa** (`/empresa`, `/perfis`, `/permissoes`, billing) | **gate único `tenant.manage`** (perfil / papéis / billing) | CRUD por sub-área | ⚠️ **GAP parcial**. `members.*` já saiu do `tenant.manage`; falta split de `tenant.profile.*` / `tenant.roles.*` / `tenant.billing.*`. **Decisão do Kelson necessária antes de mexer nesses.** |
 | **Plataforma** (`/admin/*`) | papel `PlatformAdmin` tudo-ou-nada | — | ⚠️ sem permissões finas. A UI de administração continua gated só pelo papel. Sem ação até haver requisito. |
-| **Convite/criação de usuário no tenant** | **não há endpoint** | tela de Usuários | ⚠️ **GAP de backend**. `/equipe` só gerencia quem já existe. Criar usuário exige endpoint novo (`POST /tenant/members` + e-mail de convite ou senha temporária). **Decisão do Kelson necessária.** |
 
 **Fases que NÃO dependem desses gaps podem prosseguir:** B, C, D (visual), E, H, I, J, K, L, M, N.
 **Fase G** (matriz de permissões) prossegue para os módulos de domínio e representa `tenant.manage`
@@ -271,3 +272,4 @@ como item único até a decisão acima.
 |---|---|---|
 | 2026-09-02 | A | Inventário completo: 27 arquivos de endpoint mapeados, catálogo de permissões, rotas × menu, referência DentalFlow, gaps. Documento criado. |
 | 2026-09-02 | B (parcial) | Alternador de tema removido (app.ts / nx-topbar / styles.scss / app.config.ts): sem dark mode, sem `prefers-color-scheme`, sem `localStorage` de tema, `darkModeSelector:false` no PrimeNG. Testes: `+7` (app.spec, nx-topbar.spec). Build verde, 36/36. |
+| 2026-09-03 | F (parcial) | Convite de membro do tenant: backend `tenant.members.*` CRUD + workflow `TenantInvitation` (create/list/resend/cancel/accept anônimo) com token de uso único, não escalonamento e auditoria — **61 testes de integração** (49 + 12 de gap). `RoleGrant` (regra `RolePermissions ⊆ ActorPermissions`) passou a proteger também `SetRolePermissionsAsync` — `+5` testes (`RolePermissionEscalationTests`). Frontend: `NxToast`, TeamPage com "Incluir usuário" (modal), convites pendentes, reenviar/cancelar, gating por `tenant.members.*`; `/convite/aceitar` público. Nav: item "Usuários e Equipe" passa a gatear em `tenant.members.read`. `appsettings.json` ganhou `Tenancy:Invitations:ExpirationDays: 7`. Build front verde, 38 testes. |

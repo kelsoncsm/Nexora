@@ -41,6 +41,43 @@ Filtros globais do EF Core podem formar uma camada de defesa, mas não substitue
 
 Entidades tenant-scoped terão `TenantId` obrigatório. Unicidade normalmente será composta por tenant (por exemplo, `TenantId + chave de negócio`). Relacionamentos que possam cruzar tenants exigem validação de domínio/aplicação e, quando viável, restrições compostas no banco. Índices devem começar por `TenantId` quando alinhados às consultas reais.
 
+## Gestão de membros e convites
+
+O acesso de uma pessoa a uma empresa é modelado por `TenantUser` (vínculo ativo + `TenantRoleId`). A gestão desse acesso tem **granularidade CRUD própria**, separada do gate grosso `tenant.manage`:
+
+| Permissão | Cobre |
+|---|---|
+| `tenant.members.read` | listar membros e convites; ver a lista de papéis atribuíveis |
+| `tenant.members.create` | enviar e reenviar convite |
+| `tenant.members.update` | trocar o papel de um membro |
+| `tenant.members.delete` | desativar um membro; cancelar um convite |
+
+A migration `20260902150000_AddTenantMemberPermissions` faz backfill das quatro chaves em todo papel que já tinha `tenant.manage` (todo ADMIN de sistema e qualquer papel custom de administração), então nenhuma empresa perde a capacidade atual. `tenant.manage` **não é removido** — ele ainda cobre perfil da empresa, papéis e billing (split desse resíduo é um gap arquitetural aberto, `docs/NEXORA-UI-COVERAGE.md §7`).
+
+### Fluxo de convite
+
+Endpoints sob `/api/v1/tenant/members/invitations` (+ `/accept` anônimo). O tenant é **sempre** o da sessão do chamador — nunca vem do corpo. Um `TenantInvitation` guarda só o **hash SHA-256** do token; o token bruto vive apenas no e-mail de convite (payload do outbox, redigido para `{}` assim que a mensagem é enviada) e é **de uso único**: aceitar, cancelar ou expirar torna o token inerte. "Expirado" é derivado de `ExpiresAt` (config `Tenancy:Invitations:ExpirationDays`, padrão 7), sem job de estado. Índice único parcial `(TenantId, NormalizedEmail) WHERE Status='Pending'` — no máximo um convite pendente por (empresa, e-mail).
+
+- **Criar** valida e-mail, exige que o e-mail não seja membro ativo, e aplica a regra de não escalonamento (abaixo). Convite pendente e ainda válido → 409; pendente mas expirado → reemitido na mesma linha.
+- **Reenviar** rotaciona o token (o anterior deixa de valer) e recompõe a janela de expiração; só em convite `Pending`.
+- **Cancelar** marca `Cancelled`; só em convite `Pending`.
+- **Aceitar** (anônimo, rate-limited em `auth`): o token é a única credencial e viaja no corpo. E-mail novo → cria a identidade pelo mesmo caminho do registro (política de senha, hasher, normalização); e-mail já existente → exige a senha da conta (`VerifyCredentialsAsync`). O `TenantId`/`TenantRoleId` do vínculo vêm **do convite**, nunca do corpo. Cria (ou reativa) exatamente um `TenantUser`; o convite vira `Accepted`.
+
+### Não escalonamento de privilégio
+
+`RoleGrant.IsWithinActorAuthority` — regra **`PermissõesResultantesDoPapel ⊆ PermissõesEfetivasDoAtor`**, sem exceção para `tenant.manage` nem para papéis de sistema. Aplicada em quatro pontos:
+
+- **atribuir papel a membro** — `AssignRoleAsync` → 403 `TenantForbiddenException`;
+- **criar / reenviar convite** — `EnsureActorCanGrantRoleAsync`;
+- **editar permissões de papel custom** — `SetRolePermissionsAsync` rejeita (antes de qualquer escrita) qualquer conjunto que não seja subconjunto das permissões do ator, fechando o "editar um papel existente para conceder a si mesmo — ou a quem já está nele — uma permissão que você não tem";
+- **lista de papéis atribuíveis** — `GetAssignableRolesAsync` filtra o que o front oferece.
+
+Segurar `tenant.members.create` **não** permite convidar alguém para o papel ADMIN do sistema, e segurar `tenant.manage` **não** permite conceder permissões arbitrárias a um papel — a menos que o ator detenha o conjunto completo de permissões. (Papel de sistema continua imutável via `SetRolePermissionsAsync`; criar um papel custom já nasce inerte se tiver permissões acima do ator, pois não pode ser atribuído nem usado em convite.)
+
+### Auditoria
+
+Eventos `tenant_member.invited`, `tenant_invitation.{resent,cancelled,accepted}` — cada um com `TenantId` e `ActorUserId` (no aceite, o ator é o próprio convidado). `Details` nunca contém token bruto, hash do token, senha, hash de senha nem o link de aceite completo.
+
 ## Platform scope e tenant scope
 
 Platform Admin não é um Tenant Admin “mais forte”. Endpoints e políticas de plataforma são separados, operam sem simular implicitamente um tenant e geram auditoria nas ações críticas. O acesso de suporte a dados de tenant, se futuramente necessário, exigirá decisão específica, justificativa, menor privilégio e trilha de auditoria.
