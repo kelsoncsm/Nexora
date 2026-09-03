@@ -14,7 +14,7 @@
 |---|---|
 | Design System | `src/styles.scss` `@layer nexora` + `src/app/shared/ui/` (17 componentes). Alinhado ao DentalFlow. |
 | Tema | **Somente CLARO.** Alternador de tema removido (2026-09-02). Sem dark mode, sem `prefers-color-scheme`. |
-| Sidebar | Hoje **navy** (`#171b2e`). Decisão nova: **migrar para sidebar clara** (Fase B). |
+| Sidebar | **Clara** (`--nx-sidebar-bg` `#f7f8fa`, borda direita `#e4e6ef`). Migrada em 2026-09-03 (Fase B). Item ativo = roxo primário sólido + texto branco; hover sutil; textos/ícones em neutros escuros; WCAG AA. Light-only. |
 | Telas de tenant | 18 migradas ao DS; faltam refinamentos e telas de administração. |
 | Administração de plataforma | 1 tela (`/admin`) com switcher interno cru — **não** segue o padrão "Configurações" do DentalFlow. |
 | Granularidade de permissão | **CRUD real existe** para `customers/professionals/services/appointments` e para **`tenant.members.*`** (2026-09-03). `reports` = só `read`. Perfil/papéis/billing da empresa = `tenant.manage` (sem CRUD ainda). Plataforma = papel `PlatformAdmin` (sem permissões finas). |
@@ -207,7 +207,7 @@ Pagination, Modal, ConfirmDialog, SearchInput, ChipFilter, Switch, Avatar, FormF
 - [ ] Modais / mensagens / toast / empty / loading unificados (Fase M)
 - [ ] Responsividade validada em navegador real (Fase N)
 - [x] **Tema — somente claro, alternador removido (2026-09-02)**
-- [ ] Sidebar clara (Fase B)
+- [x] **Sidebar clara (Fase B — 2026-09-03)**
 
 ### Achados estruturais
 - **BACKEND SEM UI:** `GET /admin/tenants/{id}`, `GET/PUT /admin/tenants/{id}/feature-overrides`,
@@ -272,4 +272,5 @@ como item único até a decisão acima.
 |---|---|---|
 | 2026-09-02 | A | Inventário completo: 27 arquivos de endpoint mapeados, catálogo de permissões, rotas × menu, referência DentalFlow, gaps. Documento criado. |
 | 2026-09-02 | B (parcial) | Alternador de tema removido (app.ts / nx-topbar / styles.scss / app.config.ts): sem dark mode, sem `prefers-color-scheme`, sem `localStorage` de tema, `darkModeSelector:false` no PrimeNG. Testes: `+7` (app.spec, nx-topbar.spec). Build verde, 36/36. |
-| 2026-09-03 | F (parcial) | Convite de membro do tenant: backend `tenant.members.*` CRUD + workflow `TenantInvitation` (create/list/resend/cancel/accept anônimo) com token de uso único, não escalonamento e auditoria — **61 testes de integração** (49 + 12 de gap). `RoleGrant` (regra `RolePermissions ⊆ ActorPermissions`) passou a proteger também `SetRolePermissionsAsync` — `+5` testes (`RolePermissionEscalationTests`). Frontend: `NxToast`, TeamPage com "Incluir usuário" (modal), convites pendentes, reenviar/cancelar, gating por `tenant.members.*`; `/convite/aceitar` público. Nav: item "Usuários e Equipe" passa a gatear em `tenant.members.read`. `appsettings.json` ganhou `Tenancy:Invitations:ExpirationDays: 7`. Build front verde, 38 testes. |
+| 2026-09-03 | F (parcial) | Convite de membro do tenant: backend `tenant.members.*` CRUD + workflow `TenantInvitation` (create/list/resend/cancel/accept anônimo) com token de uso único, não escalonamento e auditoria — **61 testes de integração** (49 + 12 de gap). `RoleGrant` (regra `RolePermissions ⊆ ActorPermissions`) passou a proteger também `SetRolePermissionsAsync` — `+5` testes (`RolePermissionEscalationTests`). Frontend: `NxToast`, TeamPage com "Incluir usuário" (modal), convites pendentes, reenviar/cancelar, gating por `tenant.members.*`; `/convite/aceitar` público. Nav: item "Usuários e Equipe" passa a gatear em `tenant.members.read`. `appsettings.json` ganhou `Tenancy:Invitations:ExpirationDays: 7`. Build front verde, 38 testes. **PUSHADO** em `origin/develop` (`ed6d332`) junto com os commits das Fases A/B. |
+| 2026-09-03 | B (concluída) | **Sidebar clara.** Só `styles.scss`: 5 tokens `--nx-sidebar-*` repintados (bg `#f7f8fa`, bg-alt `#eceef5`, text `#5b6178`, text-active `#1f2333`) + 2 novos (`--nx-sidebar-border` `#e4e6ef`, `--nx-sidebar-active-text` `#fff`); borda direita separando do conteúdo; card do usuário/plano com borda; hardcodes `rgba(255,255,255,…)` da sidebar eliminados (avatar → `primary-light`, divisores/bordas → token, group labels → `sidebar-text`). Item ativo mantém roxo primário `#6c5ce7` + texto branco + sombra sutil. Sem mudança de markup/componente. Light-only preservado. Contraste AA: nav 5.7:1, headings 14.7:1, ativo 4.8:1. `ng build` + 38 testes verdes. |

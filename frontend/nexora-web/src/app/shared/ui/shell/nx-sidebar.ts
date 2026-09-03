@@ -3,9 +3,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NxNavGroup, NxShellPlan, NxShellUser } from './nav';
 
 /**
- * Sidebar navy do shell (padrão DentalFlow). Puramente apresentacional:
+ * Sidebar clara do shell (Nexora light-only, Fase B). Puramente apresentacional:
  * recebe a marca, o usuário, os grupos de navegação e o plano; emite eventos
- * de navegação (para fechar o drawer no mobile) e de logout.
+ * de navegação (para fechar o drawer no mobile) e de logout. Cores vêm dos
+ * tokens --nx-sidebar-* em styles.scss.
  */
 @Component({
   selector: 'nx-sidebar',
