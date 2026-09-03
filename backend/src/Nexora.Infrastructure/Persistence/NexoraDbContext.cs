@@ -33,6 +33,7 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<TenantUser> TenantUsers => Set<TenantUser>();
     public DbSet<TenantRole> TenantRoles => Set<TenantRole>();
     public DbSet<TenantRolePermission> TenantRolePermissions => Set<TenantRolePermission>();
+    public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
     public DbSet<BusinessSegment> BusinessSegments => Set<BusinessSegment>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Feature> Features => Set<Feature>();

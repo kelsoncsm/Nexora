@@ -17,6 +17,7 @@ public sealed class TenantUser
     public bool IsActive { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public void Deactivate() => IsActive = false;
+    public void Reactivate() => IsActive = true;
     public void AssignRole(Guid tenantRoleId) => TenantRoleId = tenantRoleId;
 }
 
