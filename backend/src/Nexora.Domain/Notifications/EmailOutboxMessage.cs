@@ -82,6 +82,13 @@ public sealed class EmailOutboxMessage
         LastError = Limit(error);
     }
 
+    /// <summary>
+    /// Drops the payload once the message reaches a terminal state. Used for messages whose payload
+    /// holds a one-time secret (e.g. an invitation-accept link) that must not live on as permanent
+    /// data. The template key stays, so the row is still identifiable for audit/metrics.
+    /// </summary>
+    public void RedactPayload() => Payload = "{}";
+
     public void ReleaseStaleClaim(DateTimeOffset now)
     {
         Status = EmailOutboxStatus.Pending;

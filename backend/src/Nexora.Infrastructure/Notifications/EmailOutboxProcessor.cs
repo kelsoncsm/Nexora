@@ -30,6 +30,7 @@ public sealed class EmailOutboxProcessor(NexoraDbContext dbContext, IEmailSender
         {
             var result = await emailSender.SendAsync(BuildEmail(message), cancellationToken);
             message.MarkSent(result.ExternalMessageId, timeProvider.GetUtcNow());
+            RedactSecretPayload(message);
             await dbContext.SaveChangesAsync(cancellationToken);
             LogSent(logger, message.Id, result.ExternalMessageId, null);
         }
@@ -37,7 +38,7 @@ public sealed class EmailOutboxProcessor(NexoraDbContext dbContext, IEmailSender
         {
             var settings = options.Value;
             if (exception.Kind == EmailFailureKind.Permanent || message.AttemptCount >= settings.MaxAttempts)
-            { message.MarkFailed(exception.Message, timeProvider.GetUtcNow()); LogFailed(logger, message.Id, message.AttemptCount, exception); }
+            { message.MarkFailed(exception.Message, timeProvider.GetUtcNow()); RedactSecretPayload(message); LogFailed(logger, message.Id, message.AttemptCount, exception); }
             else
             {
                 var index = Math.Min(message.AttemptCount - 1, settings.RetryDelaysSeconds.Length - 1);
@@ -74,9 +75,32 @@ public sealed class EmailOutboxProcessor(NexoraDbContext dbContext, IEmailSender
 
     private EmailMessage BuildEmail(EmailOutboxMessage message)
     {
-        if (message.TemplateKey != WelcomeEmailTemplate.Key) throw new EmailProviderException("Unknown email template.", EmailFailureKind.Permanent);
-        var payload = JsonSerializer.Deserialize<EmailOutbox.WelcomePayload>(message.Payload) ?? throw new EmailProviderException("Invalid email payload.", EmailFailureKind.Permanent);
-        var rendered = WelcomeEmailTemplate.Render(payload.DisplayName, options.Value.ApplicationUrl);
-        return new(message.Recipient, rendered.Subject, rendered.HtmlBody, message.IdempotencyKey, message.TemplateKey);
+        switch (message.TemplateKey)
+        {
+            case WelcomeEmailTemplate.Key:
+            {
+                var payload = JsonSerializer.Deserialize<EmailOutbox.WelcomePayload>(message.Payload)
+                    ?? throw new EmailProviderException("Invalid email payload.", EmailFailureKind.Permanent);
+                var rendered = WelcomeEmailTemplate.Render(payload.DisplayName, options.Value.ApplicationUrl);
+                return new(message.Recipient, rendered.Subject, rendered.HtmlBody, message.IdempotencyKey, message.TemplateKey);
+            }
+            case TenantInvitationEmailTemplate.Key:
+            {
+                var payload = JsonSerializer.Deserialize<EmailOutbox.TenantInvitationPayload>(message.Payload)
+                    ?? throw new EmailProviderException("Invalid email payload.", EmailFailureKind.Permanent);
+                var rendered = TenantInvitationEmailTemplate.Render(
+                    payload.TenantName, payload.RoleName, payload.InviterEmail, payload.AcceptUrl);
+                return new(message.Recipient, rendered.Subject, rendered.HtmlBody, message.IdempotencyKey, message.TemplateKey);
+            }
+            default:
+                throw new EmailProviderException("Unknown email template.", EmailFailureKind.Permanent);
+        }
+    }
+
+    /// <summary>Invitation payloads carry a one-time accept link — drop it once the message is done.</summary>
+    private static void RedactSecretPayload(EmailOutboxMessage message)
+    {
+        if (message.TemplateKey == TenantInvitationEmailTemplate.Key)
+            message.RedactPayload();
     }
 }
