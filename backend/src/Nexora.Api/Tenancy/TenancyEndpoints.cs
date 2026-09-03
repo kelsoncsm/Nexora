@@ -14,12 +14,30 @@ public static class TenancyEndpoints
         endpoints.MapPost("/api/v1/tenants", CreateAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapPost("/api/v1/t/{tenantSlug}/session", SelectSessionAsync).RequireAuthorization().WithTags("Tenancy");
         endpoints.MapGet("/api/v1/me/tenants", GetMyTenantsAsync).RequireAuthorization().WithTags("Tenancy");
-        // Listing members exposes every member's e-mail, role and status — a tenant-administrative
-        // read (audit P2.2), gated like role/permission/deactivate on tenant.manage.
-        endpoints.MapGet("/api/v1/tenant/members", GetMembersAsync).RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
-        endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync).RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
-        endpoints.MapPatch("/api/v1/tenant/members/{membershipId:guid}/deactivate", DeactivateAsync)
-            .RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
+        // Member management has its own CRUD granularity (tenant.members.*, 2026-09-02). Listing
+        // members/invitations = read; changing a member's role/status = update; deactivating
+        // ("removing") a member or cancelling an invitation = delete; sending/resending an
+        // invitation = create. tenant.manage still covers company profile, roles and billing.
+        var members = endpoints.MapGroup("/api/v1/tenant/members").WithTags("Tenant Administration");
+        members.MapGet("/", GetMembersAsync).RequireAuthorization(TenantPermissions.MembersRead);
+        // Lightweight role list for the invite/role pickers — readable by members.read holders who
+        // may not have the broader tenant.manage that /tenant/roles requires.
+        members.MapGet("/assignable-roles", GetAssignableRolesAsync).RequireAuthorization(TenantPermissions.MembersRead);
+        members.MapPatch("/{membershipId:guid}/role", AssignRoleAsync).RequireAuthorization(TenantPermissions.MembersUpdate);
+        members.MapPatch("/{membershipId:guid}/deactivate", DeactivateAsync).RequireAuthorization(TenantPermissions.MembersDelete);
+
+        var invitations = members.MapGroup("/invitations");
+        invitations.MapGet("/", ListInvitationsAsync).RequireAuthorization(TenantPermissions.MembersRead);
+        invitations.MapPost("/", CreateInvitationAsync).RequireAuthorization(TenantPermissions.MembersCreate);
+        invitations.MapPost("/{invitationId:guid}/resend", ResendInvitationAsync).RequireAuthorization(TenantPermissions.MembersCreate);
+        invitations.MapDelete("/{invitationId:guid}", CancelInvitationAsync).RequireAuthorization(TenantPermissions.MembersDelete);
+        // Accepting an invitation happens before the invitee has a tenant session — the token in the
+        // body is the only credential. Anonymous + rate-limited (the 256-bit token is the real
+        // brute-force defence; the limiter just caps abuse of used/stale tokens).
+        invitations.MapPost("/accept", AcceptInvitationAsync).AllowAnonymous().RequireRateLimiting("auth");
+
+        endpoints.MapGet("/api/v1/t/{tenantSlug}/members", GetMembersAsync)
+            .RequireAuthorization(TenantPermissions.MembersRead).WithTags("Tenant Administration");
 
         var admin = endpoints.MapGroup("/api/v1/tenant").RequireAuthorization(TenantPermissions.TenantManage).WithTags("Tenant Administration");
         admin.MapGet("/", GetProfileAsync);
@@ -30,7 +48,6 @@ public static class TenancyEndpoints
         admin.MapPut("/roles/{roleId:guid}", UpdateRoleAsync);
         admin.MapGet("/roles/{roleId:guid}/permissions", GetRolePermissionsAsync);
         admin.MapPut("/roles/{roleId:guid}/permissions", SetRolePermissionsAsync);
-        admin.MapPatch("/members/{membershipId:guid}/role", AssignRoleAsync);
         return endpoints;
     }
 
@@ -110,6 +127,47 @@ public static class TenancyEndpoints
         tenant.IsAvailable && await service.DeactivateMembershipAsync(tenant.TenantId, tenant.UserId, membershipId, http.TraceIdentifier, ct)
             ? Results.NoContent() : Results.NotFound();
 
+    // ---- Invitations ---------------------------------------------------------------------------
+
+    private static async Task<IResult> GetAssignableRolesAsync(ITenantContext tenant, ITenantInvitationService service, CancellationToken ct) =>
+        tenant.IsAvailable ? Results.Ok(await service.GetAssignableRolesAsync(tenant.TenantId, tenant.UserId, ct)) : Results.Unauthorized();
+
+    private static async Task<IResult> ListInvitationsAsync(ITenantContext tenant, ITenantInvitationService service, CancellationToken ct) =>
+        tenant.IsAvailable ? Results.Ok(await service.ListAsync(tenant.TenantId, ct)) : Results.Unauthorized();
+
+    private static async Task<IResult> CreateInvitationAsync(
+        CreateInvitationRequest request, ITenantContext tenant, HttpContext http, ITenantInvitationService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        var view = await service.CreateAsync(tenant.TenantId, tenant.UserId,
+            new CreateInvitationInput(request.Email, request.RoleId), http.TraceIdentifier, ct);
+        return Results.Created($"/api/v1/tenant/members/invitations/{view.Id}", view);
+    }
+
+    private static async Task<IResult> ResendInvitationAsync(
+        Guid invitationId, ITenantContext tenant, HttpContext http, ITenantInvitationService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.ResendAsync(tenant.TenantId, tenant.UserId, invitationId, http.TraceIdentifier, ct) is { } view
+            ? Results.Ok(view) : Results.NotFound();
+    }
+
+    private static async Task<IResult> CancelInvitationAsync(
+        Guid invitationId, ITenantContext tenant, HttpContext http, ITenantInvitationService service, CancellationToken ct)
+    {
+        if (!tenant.IsAvailable) return Results.Unauthorized();
+        return await service.CancelAsync(tenant.TenantId, tenant.UserId, invitationId, http.TraceIdentifier, ct)
+            ? Results.NoContent() : Results.NotFound();
+    }
+
+    private static async Task<IResult> AcceptInvitationAsync(
+        AcceptInvitationRequest request, HttpContext http, ITenantInvitationService service, CancellationToken ct)
+    {
+        var result = await service.AcceptAsync(
+            new AcceptInvitationInput(request.Token, request.Password, request.PasswordConfirmation), http.TraceIdentifier, ct);
+        return Results.Ok(result);
+    }
+
     private static Guid UserId(ClaimsPrincipal principal) => Guid.Parse(
         principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal.FindFirstValue("sub") ?? throw new InvalidOperationException("Subject claim is missing."));
     private static CookieOptions CookieOptions(HttpContext context) => new()
@@ -120,4 +178,6 @@ public static class TenancyEndpoints
     private sealed record RoleRequest(string Name, string? Description, string[]? Permissions);
     private sealed record RolePermissionsRequest(string[]? Permissions);
     private sealed record AssignRoleRequest(Guid RoleId);
+    private sealed record CreateInvitationRequest(string Email, Guid RoleId);
+    private sealed record AcceptInvitationRequest(string Token, string Password, string? PasswordConfirmation);
 }

@@ -26,6 +26,10 @@ public static class AuditActions
     public const string TenantFeatureOverrideConfigured = "tenant_feature_override.configured";
     public const string PlanFeatureConfigured = "plan_feature.configured";
     public const string CheckoutRequested = "billing.checkout_requested";
+    public const string MemberInvited = "tenant_member.invited";
+    public const string InvitationResent = "tenant_invitation.resent";
+    public const string InvitationCancelled = "tenant_invitation.cancelled";
+    public const string InvitationAccepted = "tenant_invitation.accepted";
 }
 
 /// <summary>

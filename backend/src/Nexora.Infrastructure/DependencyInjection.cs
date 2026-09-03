@@ -63,6 +63,11 @@ public static class DependencyInjection
         services.AddScoped<ITenantContext>(x => x.GetRequiredService<TenantContext>());
         services.AddScoped<ITenantContextInitializer>(x => x.GetRequiredService<TenantContext>());
         services.AddScoped<ITenancyService, TenancyService>();
+        services.AddOptions<TenantInvitationOptions>()
+            .Bind(configuration.GetSection(TenantInvitationOptions.SectionName))
+            .Validate(x => x.ExpirationDays is > 0 and <= 90, "Tenancy:Invitations:ExpirationDays must be between 1 and 90.")
+            .ValidateOnStart();
+        services.AddScoped<ITenantInvitationService, TenantInvitationService>();
         services.AddScoped<IAdministrationService, AdministrationService>();
         services.AddScoped<IAuditLogWriter, AuditLogWriter>();
         services.AddScoped<IPlatformAdminBootstrapper, PlatformAdminBootstrapper>();
