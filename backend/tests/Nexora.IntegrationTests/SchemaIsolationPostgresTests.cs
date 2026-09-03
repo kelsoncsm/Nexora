@@ -40,8 +40,8 @@ public sealed class SchemaIsolationPostgresTests
             GROUP BY table_schema
             """);
 
-        // 31 domain tables + __EFMigrationsHistory, all in nexoratest.
-        Assert.Equal(32, GetOr0(perSchema, "nexoratest"));
+        // 32 domain tables (incl. tenant_invitations) + __EFMigrationsHistory, all in nexoratest.
+        Assert.Equal(33, GetOr0(perSchema, "nexoratest"));
 
         // The migration chain created nothing outside nexoratest: public has no base tables, and the
         // application schema is byte-for-byte what it was before the suite ran.

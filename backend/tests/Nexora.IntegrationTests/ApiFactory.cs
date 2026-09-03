@@ -36,6 +36,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Payments:MercadoPago:WebhookSecret", "test-webhook-secret");
         builder.UseSetting("Email:Provider", "Fake");
         builder.UseSetting("Email:WorkerEnabled", "false");
+        builder.UseSetting("Email:ApplicationUrl", "https://app.nexora.test");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<NexoraDbContext>();
