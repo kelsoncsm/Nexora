@@ -25,14 +25,42 @@ public sealed class IdentityService(
 
     public async Task<AuthenticatedSession> RegisterAsync(RegisterCommand command, CancellationToken cancellationToken)
     {
-        Validate(command.Email, command.Password);
-        var normalizedEmail = NormalizeEmail(command.Email);
+        IdentityValidation.ValidateCredentials(command.Email, command.Password);
+        var user = await AddNewUserAsync(command.Email, command.Password, null, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await CreateSessionAsync(user, Guid.NewGuid(), cancellationToken);
+    }
+
+    public async Task<Guid> ProvisionInvitedUserAsync(string email, string password, Guid tenantId, CancellationToken cancellationToken)
+    {
+        IdentityValidation.ValidatePassword(password);
+        var user = await AddNewUserAsync(email, password, tenantId, cancellationToken);
+        // Deliberately no SaveChanges: the invitation service commits the user, the membership and
+        // the accepted invitation in one unit of work.
+        return user.Id;
+    }
+
+    public async Task<Guid?> VerifyCredentialsAsync(string normalizedEmail, string password, CancellationToken cancellationToken)
+    {
+        var user = await dbContext.Users.SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail, cancellationToken);
+        if (user is null || !user.IsActive) return null;
+        return passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password) == PasswordVerificationResult.Failed
+            ? null
+            : user.Id;
+    }
+
+    /// <summary>Registration side effects without the session: create the user, attach the default
+    /// role (creating it and its <c>identity.profile</c> permission on first use) and enqueue the
+    /// welcome e-mail. Does not call SaveChanges.</summary>
+    private async Task<User> AddNewUserAsync(string email, string password, Guid? tenantId, CancellationToken cancellationToken)
+    {
+        var normalizedEmail = NormalizeEmail(email);
         if (await dbContext.Users.AnyAsync(x => x.NormalizedEmail == normalizedEmail, cancellationToken))
             throw new IdentityConflictException("An account with this email already exists.");
 
         var now = timeProvider.GetUtcNow();
-        var user = new User(command.Email.Trim(), normalizedEmail, now);
-        user.SetPasswordHash(passwordHasher.HashPassword(user, command.Password));
+        var user = new User(email.Trim(), normalizedEmail, now);
+        user.SetPasswordHash(passwordHasher.HashPassword(user, password));
 
         var role = await dbContext.Roles.Include(x => x.Permissions).ThenInclude(x => x.Permission)
             .SingleOrDefaultAsync(x => x.Name == DefaultRole, cancellationToken);
@@ -50,9 +78,8 @@ public sealed class IdentityService(
         }
         user.Roles.Add(new UserRole(user.Id, role.Id));
         dbContext.Users.Add(user);
-        emailOutbox.EnqueueWelcome(user.Id, null, user.Email, user.Email.Split('@')[0]);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return await CreateSessionAsync(user, Guid.NewGuid(), cancellationToken);
+        emailOutbox.EnqueueWelcome(user.Id, tenantId, user.Email, user.Email.Split('@')[0]);
+        return user;
     }
 
     public async Task<AuthenticatedSession> LoginAsync(LoginCommand command, CancellationToken cancellationToken)
@@ -178,13 +205,4 @@ public sealed class IdentityService(
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
     private static string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
-    private static void Validate(string email, string password)
-    {
-        var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal) || email.Length > 320)
-            errors["email"] = ["A valid email is required."];
-        if (password.Length < 12 || password.Length > 128)
-            errors["password"] = ["Password must contain between 12 and 128 characters."];
-        if (errors.Count > 0) throw new IdentityValidationException(errors);
-    }
 }
