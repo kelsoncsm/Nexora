@@ -1,24 +1,21 @@
 name: nexora
 
-services:
-  postgres:
-    image: postgres:18.6-alpine3.24
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-saas_dev}
-      POSTGRES_USER: ${POSTGRES_USER:-nexora}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in a local .env file}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    restart: unless-stopped
+# ─────────────────────────────────────────────────────────────────────────────
+# Nexora — stack local integrada (API + Web).
+#
+# O PostgreSQL NÃO é definido aqui. O banco é o container COMPARTILHADO
+# `saas-postgres` (repos/infra/docker-compose.yml): PostgreSQL 18, database
+# `saas_dev`, um schema por aplicação (o Nexora vive no schema `nexora`).
+#
+#   Subir o banco (uma vez):   cd ../infra && docker compose up -d
+#   Subir a stack do Nexora:   docker compose up -d --build
+#
+# Backend rodando direto no host (F5 / dotnet run) usa Host=localhost:5432 via
+# user-secrets (scripts/set-user-secrets.ps1). Aqui, dentro do Docker, a API
+# entra na rede `saas-network` e alcança o banco por Host=saas-postgres.
+# ─────────────────────────────────────────────────────────────────────────────
 
+services:
   api:
     build:
       context: ./backend
@@ -26,8 +23,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
-      # ADR-0022: shared saas_dev database, application confined to the "nexora" schema via Search Path.
-      ConnectionStrings__NexoraDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-saas_dev};Username=${POSTGRES_USER:-nexora};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in a local .env file};Search Path=nexora
+      # ADR-0022: database compartilhada saas_dev, aplicação confinada ao schema "nexora" via Search Path.
+      ConnectionStrings__NexoraDatabase: Host=saas-postgres;Port=5432;Database=${POSTGRES_DB:-saas_dev};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres};Search Path=nexora
       Identity__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in a local .env file}
       Administration__BootstrapAdminEmail: ${PLATFORM_ADMIN_EMAIL:-}
       Payments__MercadoPago__AccessToken: ${MERCADOPAGO_ACCESS_TOKEN:-}
@@ -38,9 +35,8 @@ services:
       Email__ResendApiKey: ${RESEND_API_KEY:-}
     ports:
       - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    networks:
+      - saas-network
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/live"]
       interval: 10s
@@ -66,5 +62,7 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-volumes:
-  postgres-data:
+networks:
+  saas-network:
+    external: true
+    name: saas-network

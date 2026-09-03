@@ -51,7 +51,7 @@ if (-not $SigningKey)          { $SigningKey          = $env['JWT_SIGNING_KEY'] 
 if (-not $BootstrapAdminEmail) { $BootstrapAdminEmail = $env['PLATFORM_ADMIN_EMAIL'] }
 if (-not $ConnectionString) {
     $db   = if ($env['POSTGRES_DB'])       { $env['POSTGRES_DB'] }       else { 'saas_dev' }
-    $user = if ($env['POSTGRES_USER'])     { $env['POSTGRES_USER'] }     else { 'nexora' }
+    $user = if ($env['POSTGRES_USER'])     { $env['POSTGRES_USER'] }     else { 'postgres' }
     $pass = $env['POSTGRES_PASSWORD']
     if (-not $pass) { throw 'POSTGRES_PASSWORD ausente no .env e -ConnectionString nao informado.' }
     $ConnectionString = "Host=$DbHost;Port=$DbPort;Database=$db;Username=$user;Password=$pass;Search Path=nexora"
